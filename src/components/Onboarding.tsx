@@ -145,7 +145,7 @@ const Card = styled.div`
   max-width: 420px;
   padding: 3rem;
   border-radius: 2.5rem;
-  background: rgba(15, 23, 42, 0.65);
+  background: rgba(43, 77, 155, 0.65);
   backdrop-filter: blur(18px);
   box-shadow: 0 40px 80px rgba(0, 0, 0, 0.45);
   animation: ${fadeUp} 0.7s ease;
@@ -289,5 +289,5 @@ const Footer = styled.div`
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.15em;
-  color: #64748b;
+  color: #e7dcdc;
 `;

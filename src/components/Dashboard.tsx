@@ -395,7 +395,7 @@ const Wrapper = styled.div`
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #020617;
+  background: rgba(52, 59, 92, 0.4);
   color: #e5e7eb;
 `;
 
@@ -406,7 +406,7 @@ const Header = styled.header`
   padding: 1rem 2rem;
   display: flex;
   justify-content: space-between;
-  background: rgba(2, 6, 23, 0.85);
+  background: rgba(6, 14, 49, 0.85)
   backdrop-filter: blur(16px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 

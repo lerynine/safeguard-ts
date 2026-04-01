@@ -15,19 +15,19 @@ const GlobalStyle = createGlobalStyle`
     /* 🔥 LEBIH CERAH & DEPTH */
     background: radial-gradient(
         circle at 20% 20%,
-        rgba(59, 130, 246, 0.15),
+        rgba(76, 103, 168, 0.6),
         transparent 40%
       ),
       radial-gradient(
         circle at 80% 0%,
-        rgba(99, 102, 241, 0.15),
+        rgba(78, 96, 188, 0.66),
         transparent 40%
       ),
       linear-gradient(
         135deg,
-        #334155 0%,
-        #1e293b 40%,
-        #0f172a 100%
+        rgb(51, 75, 102) 0%,
+        #729edb 40%,
+        #5274cb 100%
       );
 
     color: #f1f5f9;
@@ -37,9 +37,9 @@ const GlobalStyle = createGlobalStyle`
 
   /* 🔥 Glass Card Lebih Terang & Clean */
   .glass-card {
-    background: rgba(51, 65, 85, 0.65);
+    background: rgba(16, 24, 46, 0.6);
     backdrop-filter: blur(20px);
-    border: 1px solid rgba(148, 163, 184, 0.25);
+    border: 1px solid rgba(148, 163, 184, 0.18);
     box-shadow:
       0 10px 30px rgba(0, 0, 0, 0.25),
       inset 0 1px 0 rgba(255, 255, 255, 0.08);

@@ -310,7 +310,7 @@ const Wrapper = styled.div`
 
 const Header = styled.div`
   padding: 2rem;
-  background: linear-gradient(135deg, #0f172a, #1e293b);
+  background: linear-gradient(135deg, #1a2b5a, #284a6c);
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   display: flex;
   justify-content: space-between;
@@ -346,7 +346,7 @@ const HeaderText = styled.div`
 const CloseButton = styled.button`
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #94a3b8;
+  color: #ccd6e4;
   cursor: pointer;
   width: 40px;
   height: 40px;
@@ -369,7 +369,7 @@ const Form = styled.form`
   display: flex;
   flex-direction: column;
   gap: 2rem;
-  background: rgba(15, 23, 42, 0.3);
+  background: rgba(125, 153, 219, 0.3);
 
   @media (max-width: 480px) {
     padding: 1.5rem;
@@ -399,7 +399,7 @@ const Label = styled.label`
   font-weight: 700;
   letter-spacing: 0.15em;
   text-transform: uppercase;
-  color: #94a3b8;
+  color: #ffffff;
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -419,10 +419,10 @@ const TypeButton = styled.button<{ active: boolean }>`
   padding: 1.25rem;
   border-radius: 1.5rem;
   border: 1px solid
-    ${({ active }) => (active ? 'rgba(59, 130, 246, 0.5)' : 'rgba(255,255,255,0.05)')};
+    ${({ active }) => (active ? 'rgba(59, 130, 246, 0.5)' : 'rgba(255, 0, 0, 0.05)')};
   background: ${({ active }) =>
     active ? 'linear-gradient(135deg, #2563eb, #1d4ed8)' : 'rgba(30,41,59,0.4)'};
-  color: ${({ active }) => (active ? 'white' : '#64748b')};
+  color: ${({ active }) => (active ? 'white' : '#d2ddef')};
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.15em;
@@ -447,7 +447,7 @@ const Dot = styled.div<{ active: boolean }>`
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: ${({ active }) => (active ? 'white' : '#334155')};
+  background: ${({ active }) => (active ? 'white' : '#5d7089')};
   box-shadow: ${({ active }) => active ? '0 0 10px white' : 'none'};
 `;
 
@@ -505,7 +505,7 @@ const Preview = styled.div`
   height: 160px;
   border-radius: 1.5rem;
   overflow: hidden;
-  border: 1px solid rgba(59, 130, 246, 0.3);
+  border: 1px solid rgba(245, 246, 248, 0.3);
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
 
   img {

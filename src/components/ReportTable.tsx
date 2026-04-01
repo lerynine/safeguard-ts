@@ -334,14 +334,6 @@ export default function ReportTable({
                                   Batal
                                 </CancelBtn>
 
-                                {report.status === ReportStatus.OPEN && (
-                                  <SubmitBtn
-                                    onClick={() => handleSubmit(report.id, 'PROSES')}
-                                  >
-                                    Update Proses
-                                  </SubmitBtn>
-                                )}
-
                                 <SubmitBtn
                                   style={{ background: '#10b981' }}
                                   onClick={() => handleSubmit(report.id, 'SELESAI')}
@@ -895,7 +887,7 @@ const ButtonGroup = styled.div`
 const SubmitBtn = styled.button`
   padding: 14px 24px;
   border-radius: 16px;
-  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  background: linear-gradient(135deg, #10b981', #10b981');
   color: white;
   font-size: 11px;
   font-weight: 900;
@@ -904,7 +896,7 @@ const SubmitBtn = styled.button`
   border: 1px solid rgba(255, 255, 255, 0.1);
   cursor: pointer;
   transition: all 0.3s;
-  box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.4);
+  box-shadow: 0 10px 25px -5px rgba(26, 153, 34, 0.4);
 
   @media (max-width: 480px) {
     padding: 10px 16px;
@@ -914,7 +906,7 @@ const SubmitBtn = styled.button`
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 15px 30px -5px rgba(37, 99, 235, 0.5);
+    box-shadow: 0 15px 30px -5px rgba(29, 110, 51, 0.5);
     filter: brightness(1.1);
   }
 

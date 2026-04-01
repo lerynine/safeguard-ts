@@ -358,7 +358,7 @@ const Wrapper = styled.div`
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #020617;
+  background: rgba(40, 33, 78, 0.37);
   color: #e5e7eb;
 `;
 
@@ -369,7 +369,7 @@ const Header = styled.header`
   padding: 1rem 2rem;
   display: flex;
   justify-content: space-between;
-  background: rgba(2, 6, 23, 0.85);
+  background: rgba(30, 39, 78, 0.85);
   backdrop-filter: blur(16px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 
@@ -395,7 +395,7 @@ const HeaderLeft = styled.div`
 `;
 
 const BackButton = styled.button`
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(58, 52, 135, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: #64748b;
   padding: 8px;

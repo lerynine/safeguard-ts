@@ -353,7 +353,7 @@ const Description = styled.h4`
 const SuggestionBox = styled.div`
   padding: 12px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(0, 0, 0, 0.11);
   border: 1px solid rgba(255, 255, 255, 0.05);
 
   span {
@@ -361,15 +361,15 @@ const SuggestionBox = styled.div`
     text-transform: uppercase;
     letter-spacing: 0.15em;
     font-weight: 700;
-    color: #64748b;
+    color: rgb(187, 197, 216);
     display: block;
     margin-bottom: 4px;
   }
 
   p {
-    font-size: 11px;
-    color: #94a3b8;
-    font-style: italic;
+    font-size: 12px;
+    color: #c51c1c;
+    font-weight: 600;
     line-height: 1.4;
   }
 `;
