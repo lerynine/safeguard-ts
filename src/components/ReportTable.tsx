@@ -123,7 +123,8 @@ export default function ReportTable({
         const data = doc.data();
         console.log(`👤 User Found [${doc.id}]:`, data);
         return {
-          id: doc.id,
+          id: data.uid || doc.id, // Use UID field as the identifier for selection
+          docId: doc.id,
           ...data
         };
       });
@@ -432,29 +433,22 @@ export default function ReportTable({
                                           status: ReportStatus.IN_PROGRESS,
                                         });
 
-                                        // 2. Create notifications in Firestore
+                                        // 2. Create notification in Firestore with the requested schema
                                         try {
                                           const notificationsRef = collection(db, "notifications");
-                                          const auth = getAuth();
-                                          const currentUser = auth.currentUser;
                                           
-                                          console.log("🔔 Creating notifications...");
-                                          const promises = selectedUsers.map(uid => 
-                                            addDoc(notificationsRef, {
-                                              toUserId: uid,
-                                              fromUserId: currentUser?.uid,
-                                              reportId: report.id,
-                                              description: report.description,
-                                              message: disposisiMessage,
-                                              type: 'DISPOSISI',
-                                              read: false,
-                                              createdAt: serverTimestamp()
-                                            })
-                                          );
-                                          await Promise.all(promises);
-                                          console.log("✅ All notifications successfully created.");
+                                          console.log("🔔 Creating notification document...");
+                                          await addDoc(notificationsRef, {
+                                            id: report.id,
+                                            title: report.description || "Disposisi Temuan",
+                                            message: disposisiMessage,
+                                            toUserId: selectedUsers, // Array of selected user UIDs
+                                            isRead: false,
+                                            createdAt: serverTimestamp()
+                                          });
+                                          console.log("✅ Notification successfully created with schema: { id, title, message, toUserId, isRead, createdAt }");
                                         } catch (err) {
-                                          console.error("❌ Failed to create notifications:", err);
+                                          console.error("❌ Failed to create notification:", err);
                                         }
 
                                         setDisposisiReportId(null);

@@ -85,8 +85,14 @@ export default function Dashboard({
     const hour = new Date().getHours();
     const g =
       hour < 12 ? "Pagi" : hour < 15 ? "Siang" : hour < 18 ? "Sore" : "Malam";
-    setGreeting(`Selamat ${g}, ${user.name.split(" ")[0]}`);
+    setGreeting(`Selamat ${g}, ${user.name?.split(" ")[0] || "User"}`);
   }, [user.name]);
+
+  // Filter notifications for the current user
+  const userNotifications = useMemo(() => {
+    if (!user?.uid) return [];
+    return notifications.filter(n => n.toUserId?.includes(user.uid));
+  }, [notifications, user.uid]);
 
   const filteredReports = useMemo(() => {
     let result = [...reports];
@@ -126,7 +132,7 @@ export default function Dashboard({
     setIsNotifOpen(!isNotifOpen);
   };
 
-  const hasUnread = notifications.some((n) => !n.isRead);
+  const hasUnread = userNotifications.some((n) => !n.isRead);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -213,11 +219,11 @@ export default function Dashboard({
                     <X size={14} onClick={() => setIsNotifOpen(false)} style={{ cursor: 'pointer' }} />
                   </NotifHeader>
                   <NotifList>
-                    {notifications.length ? (
-                      [...notifications].reverse().map((n) => (
+                    {userNotifications.length ? (
+                      [...userNotifications].reverse().map((n) => (
                         <NotifItem key={n.id}>
                           <strong>{n.title}</strong>
-                          <small>{n.time}</small>
+                          <small>{n.time || (n.createdAt?.seconds ? new Date(n.createdAt.seconds * 1000).toLocaleString() : "")}</small>
                           <p>{n.message}</p>
                         </NotifItem>
                       ))
@@ -406,7 +412,7 @@ const Header = styled.header`
   padding: 1rem 2rem;
   display: flex;
   justify-content: space-between;
-  background: rgba(6, 14, 49, 0.85)
+  background: rgba(6, 14, 49, 0.85);
   backdrop-filter: blur(16px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 
