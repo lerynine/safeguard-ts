@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import styled, { css } from 'styled-components';
+import React, { useState, useEffect } from 'react';
+import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Calendar,
@@ -8,31 +8,15 @@ import {
   AlertTriangle,
   Eye,
   Edit3,
-  ShieldAlert
+  ShieldAlert,
+  Search,
+  X
 } from 'lucide-react';
 import { ReportStatus, UserRole } from '../constants/enums';
-import { db } from '../firebase'; // sesuaikan path
-import { collection, query, where, getDocs } from "firebase/firestore";
-import { useEffect } from 'react';
+import { db } from '../firebase';
+import { collection, query, where, getDocs, addDoc, serverTimestamp } from "firebase/firestore";
 import { getAuth } from 'firebase/auth';
 
-const fetchCurrentUserRole = async (uid: string) => {
-  const q = query(
-    collection(db, 'users'),
-    where('uid', '==', uid)
-  );
-
-  const snapshot = await getDocs(q);
-
-  if (!snapshot.empty) {
-    const userData = snapshot.docs[0].data();
-    return userData.role;
-  }
-
-  return null;
-};
-const auth = getAuth();
-const currentUser = auth.currentUser;
 const STATUS_CONFIG = {
   [ReportStatus.OPEN]: {
     label: 'MENUNGGU',
@@ -59,7 +43,6 @@ const STATUS_CONFIG = {
 
 export default function ReportTable({
   reports,
-  user,
   onUpdate,
   onImageClick,
   hideActions = false
@@ -76,16 +59,37 @@ export default function ReportTable({
 
   const [disposisiReportId, setDisposisiReportId] = useState<string | null>(null);
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
-  useEffect(() => {
-    console.log("🔥 CURRENT USER ROLE:", currentUserRole);
-  }, [currentUserRole]);
-  const [usersList, setUsersList] = useState<any[]>([]);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [disposisiMessage, setDisposisiMessage] = useState('');
   const [disposisiStep, setDisposisiStep] = useState<1 | 2>(1);
   const [searchName, setSearchName] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [loadingUserSearch, setLoadingUserSearch] = useState(false);
+
+  useEffect(() => {
+    const loadUser = async () => {
+      const auth = getAuth();
+      const authUser = auth.currentUser;
+      console.log("👤 Current Auth User:", authUser ? { uid: authUser.uid, email: authUser.email } : "Not logged in");
+      if (!authUser) return;
+
+      const q = query(
+        collection(db, "users"),
+        where("uid", "==", authUser.uid)
+      );
+      console.log("📡 Fetching user role from Firestore for UID:", authUser.uid);
+      const snapshot = await getDocs(q);
+      if (!snapshot.empty) {
+        const userData = snapshot.docs[0].data();
+        console.log("✅ Current User Data from Firestore:", userData);
+        setCurrentUserRole(userData.role);
+      } else {
+        console.log("⚠️ User document not found in 'users' collection for UID:", authUser.uid);
+      }
+    };
+    loadUser();
+  }, []);
+
   const handleEdit = (report: any) => {
     if (selectedReportId === report.id) {
       setSelectedReportId(null);
@@ -97,26 +101,37 @@ export default function ReportTable({
   };
 
   const handleSearchUser = async () => {
-    if (!searchName.trim()) return;
-
+    console.log("🔍 Searching for user with name prefix:", searchName);
+    if (!searchName.trim()) {
+      console.log("⚠️ Search name is empty, skipping.");
+      return;
+    }
     try {
       setLoadingUserSearch(true);
-
+      // Firestore prefix search is case-sensitive. 
+      // Using "nama" as requested by the user.
       const q = query(
         collection(db, "users"),
-        where("name", ">=", searchName),
-        where("name", "<=", searchName + "\uf8ff")
+        where("nama", ">=", searchName),
+        where("nama", "<=", searchName + "\uf8ff")
       );
-
+      console.log("📡 Executing Firestore query...");
       const snapshot = await getDocs(q);
-
-      const results = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-
-      console.log("🔎 Search Results:", results);
-
+      console.log("📦 Snapshot size:", snapshot.size);
+      
+      const results = snapshot.docs.map(doc => {
+        const data = doc.data();
+        console.log(`👤 User Found [${doc.id}]:`, data);
+        return {
+          id: doc.id,
+          ...data
+        };
+      });
+      
+      if (results.length === 0) {
+        console.log("ℹ️ No users found matching the criteria.");
+      }
+      
       setSearchResults(results);
     } catch (error) {
       console.error("❌ Error search user:", error);
@@ -124,66 +139,24 @@ export default function ReportTable({
       setLoadingUserSearch(false);
     }
   };
-  const fetchUsers = async () => {
-    const snapshot = await getDocs(collection(db, 'users'));
-    const users = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
-    setUsersList(users);
-  };
 
   const handleSubmit = (id: string, type: 'PROSES' | 'SELESAI') => {
     const updates: any = {
       estimationDate,
       plannedAction,
     };
-
     if (type === 'SELESAI') {
+      updates.status = ReportStatus.CLOSED;
       updates.handlingReport = 'Selesai';
     } else if (type === 'PROSES') {
+      updates.status = ReportStatus.IN_PROGRESS;
       updates.moveToProses = true;
     }
-
     onUpdate(id, updates);
     setSelectedReportId(null);
   };
 
-  // Robust BPO check
   const isUserBPO = currentUserRole === UserRole.BPO;
-
-  useEffect(() => {
-    const loadUser = async () => {
-      const auth = getAuth();
-      const authUser = auth.currentUser;
-
-      if (!authUser) {
-        console.log("❌ Tidak ada user login");
-        return;
-      }
-
-      console.log("🔎 Cari user dengan UID:", authUser.uid);
-
-      const q = query(
-        collection(db, "users"),
-        where("uid", "==", authUser.uid)
-      );
-
-      const snapshot = await getDocs(q);
-
-      console.log("📦 Snapshot size:", snapshot.size);
-
-      if (!snapshot.empty) {
-        const userData = snapshot.docs[0].data();
-        console.log("✅ USER DATA:", userData);
-        setCurrentUserRole(userData.role);
-      } else {
-        console.log("❌ User tidak ditemukan di Firestore");
-      }
-    };
-
-    loadUser();
-  }, []);
 
   return (
     <TableContainer className="glass-card" as={motion.div} layout>
@@ -204,11 +177,12 @@ export default function ReportTable({
                 const config = (STATUS_CONFIG as any)[report.status] || STATUS_CONFIG[ReportStatus.OPEN];
                 const StatusIcon = config.icon;
                 const isEditing = selectedReportId === report.id;
+                const isDisposisi = disposisiReportId === report.id;
 
                 return (
                   <React.Fragment key={report.id}>
                     <TableRow
-                      active={isEditing}
+                      active={isEditing || isDisposisi}
                       as={motion.tr}
                       layout
                       initial={{ opacity: 0 }}
@@ -257,18 +231,39 @@ export default function ReportTable({
                         <td>
                           <ActionGroup>
                             {report.status !== ReportStatus.CLOSED ? (
-                              <EditButton
-                                active={isEditing}
-                                onClick={() => handleEdit(report)}
-                                as={motion.button}
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                              >
-                                <Edit3 size={14} />
-                                <span>Edit</span>
-                              </EditButton>
+                              <>
+                                <EditButton
+                                  active={isEditing}
+                                  onClick={() => handleEdit(report)}
+                                  as={motion.button}
+                                  whileHover={{ scale: 1.05 }}
+                                  whileTap={{ scale: 0.95 }}
+                                >
+                                  <Edit3 size={14} />
+                                  <span>Edit</span>
+                                </EditButton>
 
-
+                                {isUserBPO && (
+                                  <EditButton
+                                    active={isDisposisi}
+                                    onClick={() => {
+                                      setDisposisiReportId(isDisposisi ? null : report.id);
+                                      setDisposisiStep(1);
+                                      setSelectedUsers([]);
+                                      setDisposisiMessage('');
+                                      setSearchResults([]);
+                                      setSearchName('');
+                                    }}
+                                    as={motion.button}
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    style={{ background: isDisposisi ? 'linear-gradient(135deg, #6366f1, #4338ca)' : 'rgba(99, 102, 241, 0.1)', borderColor: 'rgba(99, 102, 241, 0.2)', color: isDisposisi ? 'white' : '#818cf8' }}
+                                  >
+                                    <ShieldAlert size={14} />
+                                    <span>Disposisi</span>
+                                  </EditButton>
+                                )}
+                              </>
                             ) : (
                               <ActionButton
                                 title="Lihat Detail"
@@ -280,22 +275,6 @@ export default function ReportTable({
                               </ActionButton>
                             )}
                           </ActionGroup>
-                          {isUserBPO && report.status !== ReportStatus.CLOSED && (
-                            <ActionButton
-                              onClick={async () => {
-                                await fetchUsers();
-                                setDisposisiReportId(report.id);
-                                setDisposisiStep(1);
-                                setSelectedUsers([]);
-                                setDisposisiMessage('');
-                              }}
-                              as={motion.button}
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                            >
-                              Disposisi
-                            </ActionButton>
-                          )}
                         </td>
                       )}
                     </TableRow>
@@ -310,30 +289,37 @@ export default function ReportTable({
                         >
                           <td colSpan={5}>
                             <EditPanel>
-                              <InputGroup>
-                                <label>TANGGAL PERUBAHAN</label>
-                                <input
-                                  type="date"
-                                  value={estimationDate}
-                                  onChange={(e) => setEstimationDate(e.target.value)}
-                                />
-                              </InputGroup>
+                              <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
+                                <InputGroup style={{ flex: 1, minWidth: '200px' }}>
+                                  <label>ESTIMASI TANGGAL SELESAI</label>
+                                  <input
+                                    type="date"
+                                    value={estimationDate}
+                                    onChange={(e) => setEstimationDate(e.target.value)}
+                                  />
+                                </InputGroup>
 
-                              <InputGroup>
-                                <label>NOTE</label>
-                                <textarea
-                                  rows={2}
-                                  value={plannedAction}
-                                  onChange={(e) => setPlannedAction(e.target.value)}
-                                  placeholder="Tambahkan catatan..."
-                                />
-                              </InputGroup>
+                                <InputGroup style={{ flex: 2, minWidth: '300px' }}>
+                                  <label>RENCANA TINDAKAN</label>
+                                  <textarea
+                                    rows={2}
+                                    value={plannedAction}
+                                    onChange={(e) => setPlannedAction(e.target.value)}
+                                    placeholder="Tambahkan rencana tindakan..."
+                                  />
+                                </InputGroup>
+                              </div>
 
-                              <ButtonGroup>
+                              <ButtonGroup style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
                                 <CancelBtn onClick={() => setSelectedReportId(null)}>
                                   Batal
                                 </CancelBtn>
-
+                                <SubmitBtn
+                                  style={{ background: '#3b82f6' }}
+                                  onClick={() => handleSubmit(report.id, 'PROSES')}
+                                >
+                                  Proses
+                                </SubmitBtn>
                                 <SubmitBtn
                                   style={{ background: '#10b981' }}
                                   onClick={() => handleSubmit(report.id, 'SELESAI')}
@@ -346,196 +332,149 @@ export default function ReportTable({
                         </EditRow>
                       )}
                     </AnimatePresence>
-                      <AnimatePresence>
-  {disposisiReportId === report.id && (
-    <EditRow
-      as={motion.tr}
-      initial={{ opacity: 0, height: 0 }}
-      animate={{ opacity: 1, height: 'auto' }}
-      exit={{ opacity: 0, height: 0 }}
-    >
-      <td colSpan={5}>
-        <EditPanel>
-          <h4 style={{ color: "#60a5fa" }}>DISPOSISI</h4>
 
-          {/* ================= STEP 1 ================= */}
-          {disposisiStep === 1 && (
-            <>
-              <h4 style={{ color: "white" }}>
-                Pilih Penerima Disposisi
-              </h4>
-
-              {/* SEARCH INPUT */}
-              <div style={{ display: "flex", gap: 8 }}>
-                <input
-                  type="text"
-                  value={searchName}
-                  onChange={(e) => setSearchName(e.target.value)}
-                  placeholder="Cari nama user..."
-                  style={{ flex: 1, padding: 6 }}
-                />
-
-                <button onClick={handleSearchUser}>
-                  Search
-                </button>
-              </div>
-
-              {/* SEARCH RESULT */}
-              <div style={{ marginTop: 10 }}>
-                {searchResults.map((u) => (
-                  <div
-                    key={u.id}
-                    style={{
-                      padding: 6,
-                      cursor: "pointer",
-                      background: "#1f2937",
-                      marginBottom: 4,
-                    }}
-                    onClick={() => {
-                      if (!selectedUsers.includes(u.id)) {
-                        setSelectedUsers([
-                          ...selectedUsers,
-                          u.id,
-                        ]);
-                      }
-                    }}
-                  >
-                    {u.name}
-                  </div>
-                ))}
-              </div>
-
-              {/* SELECTED USERS */}
-              {selectedUsers.length > 0 && (
-                <div style={{ marginTop: 15 }}>
-                  <h5 style={{ color: "white" }}>
-                    Dipilih:
-                  </h5>
-
-                  {selectedUsers.map((id) => {
-                    const user = searchResults.find(
-                      (u) => u.id === id
-                    );
-
-                    return (
-                      <div
-                        key={id}
-                        style={{
-                          background: "#374151",
-                          padding: 6,
-                          marginBottom: 4,
-                          display: "flex",
-                          justifyContent: "space-between",
-                        }}
-                      >
-                        <span>
-                          {user?.name || id}
-                        </span>
-
-                        <button
-                          onClick={() =>
-                            setSelectedUsers(
-                              selectedUsers.filter(
-                                (uid) => uid !== id
-                              )
-                            )
-                          }
+                    <AnimatePresence>
+                      {isDisposisi && (
+                        <EditRow
+                          as={motion.tr}
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
                         >
-                          X
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+                          <td colSpan={5}>
+                            <EditPanel style={{ borderTopColor: 'rgba(99, 102, 241, 0.3)' }}>
+                              <h4 style={{ color: "#818cf8", fontSize: '12px', fontWeight: 900, letterSpacing: '0.1em' }}>FORM DISPOSISI</h4>
 
-              <ButtonGroup>
-                <CancelBtn
-                  onClick={() =>
-                    setDisposisiReportId(null)
-                  }
-                >
-                  Batal
-                </CancelBtn>
+                              {disposisiStep === 1 ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                  <InputGroup>
+                                    <label>CARI PENERIMA (NAMA)</label>
+                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                      <div style={{ position: 'relative', flex: 1 }}>
+                                        <input
+                                          type="text"
+                                          value={searchName}
+                                          onChange={(e) => setSearchName(e.target.value)}
+                                          onKeyDown={(e) => e.key === 'Enter' && handleSearchUser()}
+                                          placeholder="Ketik nama user..."
+                                          style={{ width: '100%', paddingLeft: '2.5rem' }}
+                                        />
+                                        <Search size={16} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#475569' }} />
+                                      </div>
+                                      <SubmitBtn onClick={handleSearchUser} disabled={loadingUserSearch} style={{ padding: '0 1.5rem', background: '#6366f1' }}>
+                                        {loadingUserSearch ? '...' : 'CARI'}
+                                      </SubmitBtn>
+                                    </div>
+                                  </InputGroup>
 
-                <SubmitBtn
-                  disabled={selectedUsers.length === 0}
-                  onClick={() =>
-                    setDisposisiStep(2)
-                  }
-                >
-                  Next
-                </SubmitBtn>
-              </ButtonGroup>
-            </>
-          )}
+                                  {searchResults.length > 0 && (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', maxHeight: '150px', overflowY: 'auto', background: 'rgba(0,0,0,0.2)', borderRadius: '12px', padding: '0.5rem' }}>
+                                      {searchResults.map((u) => (
+                                        <UserResultItem
+                                          key={u.id}
+                                          onClick={() => {
+                                            if (!selectedUsers.includes(u.id)) {
+                                              setSelectedUsers([...selectedUsers, u.id]);
+                                            }
+                                          }}
+                                        >
+                                          <span>{u.nama}</span>
+                                          <span style={{ fontSize: '10px', opacity: 0.5 }}>{u.role}</span>
+                                        </UserResultItem>
+                                      ))}
+                                    </div>
+                                  )}
 
-          {/* ================= STEP 2 ================= */}
-          {disposisiStep === 2 && (
-            <>
-              <InputGroup>
-                <label>Instruksi / Pesan</label>
-                <textarea
-                  rows={3}
-                  value={disposisiMessage}
-                  onChange={(e) =>
-                    setDisposisiMessage(
-                      e.target.value
-                    )
-                  }
-                  placeholder="Masukkan instruksi untuk penerima disposisi..."
-                />
-              </InputGroup>
+                                  {selectedUsers.length > 0 && (
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.5rem' }}>
+                                      {selectedUsers.map((id) => {
+                                        const found = searchResults.find(u => u.id === id);
+                                        return (
+                                          <SelectedBadge key={id}>
+                                            {found?.nama || id}
+                                            <X size={12} onClick={() => setSelectedUsers(selectedUsers.filter(uid => uid !== id))} style={{ cursor: 'pointer' }} />
+                                          </SelectedBadge>
+                                        );
+                                      })}
+                                    </div>
+                                  )}
 
-              <ButtonGroup>
-                <CancelBtn
-                  onClick={() =>
-                    setDisposisiStep(1)
-                  }
-                >
-                  Back
-                </CancelBtn>
+                                  <ButtonGroup style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
+                                    <CancelBtn onClick={() => setDisposisiReportId(null)}>Batal</CancelBtn>
+                                    <SubmitBtn disabled={selectedUsers.length === 0} onClick={() => setDisposisiStep(2)} style={{ background: '#6366f1' }}>
+                                      Lanjut
+                                    </SubmitBtn>
+                                  </ButtonGroup>
+                                </div>
+                              ) : (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                  <InputGroup>
+                                    <label>PESAN / INSTRUKSI</label>
+                                    <textarea
+                                      rows={3}
+                                      value={disposisiMessage}
+                                      onChange={(e) => setDisposisiMessage(e.target.value)}
+                                      placeholder="Tulis instruksi pengerjaan..."
+                                    />
+                                  </InputGroup>
 
-                <SubmitBtn
-                  onClick={() => {
-                    console.log(
-                      "Disposisi ke:",
-                      selectedUsers
-                    );
-                    console.log(
-                      "Pesan:",
-                      disposisiMessage
-                    );
+                                  <ButtonGroup style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
+                                    <CancelBtn onClick={() => setDisposisiStep(1)}>Kembali</CancelBtn>
+                                    <SubmitBtn
+                                      onClick={async () => {
+                                        console.log("📤 Submitting disposisi for report:", report.id);
+                                        console.log("👥 Target users:", selectedUsers);
+                                        
+                                        // 1. Update the report status and data
+                                        onUpdate(report.id, {
+                                          disposisiTo: selectedUsers,
+                                          disposisiMessage,
+                                          status: ReportStatus.IN_PROGRESS,
+                                        });
 
-                    onUpdate(report.id, {
-                      disposisiTo:
-                        selectedUsers,
-                      disposisiMessage,
-                      status:
-                        ReportStatus.IN_PROGRESS,
-                    });
+                                        // 2. Create notifications in Firestore
+                                        try {
+                                          const notificationsRef = collection(db, "notifications");
+                                          const auth = getAuth();
+                                          const currentUser = auth.currentUser;
+                                          
+                                          console.log("🔔 Creating notifications...");
+                                          const promises = selectedUsers.map(uid => 
+                                            addDoc(notificationsRef, {
+                                              toUserId: uid,
+                                              fromUserId: currentUser?.uid,
+                                              reportId: report.id,
+                                              description: report.description,
+                                              message: disposisiMessage,
+                                              type: 'DISPOSISI',
+                                              read: false,
+                                              createdAt: serverTimestamp()
+                                            })
+                                          );
+                                          await Promise.all(promises);
+                                          console.log("✅ All notifications successfully created.");
+                                        } catch (err) {
+                                          console.error("❌ Failed to create notifications:", err);
+                                        }
 
-                    setDisposisiReportId(null);
-                    setDisposisiStep(1);
-                    setSelectedUsers([]);
-                    setDisposisiMessage("");
-                  }}
-                >
-                  Submit Disposisi
-                </SubmitBtn>
-              </ButtonGroup>
-            </>
-          )}
-        </EditPanel>
-      </td>
-    </EditRow>
-  )}
-</AnimatePresence>
+                                        setDisposisiReportId(null);
+                                      }}
+                                      style={{ background: '#10b981' }}
+                                    >
+                                      Kirim Disposisi
+                                    </SubmitBtn>
+                                  </ButtonGroup>
+                                </div>
+                              )}
+                            </EditPanel>
+                          </td>
+                        </EditRow>
+                      )}
+                    </AnimatePresence>
                   </React.Fragment>
                 );
               })}
             </AnimatePresence>
-        
           </motion.tbody>
         </StyledTable>
       </ScrollWrapper>
@@ -547,9 +486,11 @@ export default function ReportTable({
 }
 
 const TableContainer = styled.div`
-  border-radius: 2rem;
+  border-radius: 1.5rem;
   overflow: hidden;
   background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
 `;
 
 const ScrollWrapper = styled.div`
@@ -562,75 +503,46 @@ const StyledTable = styled.table`
   text-align: left;
 
   th {
-    padding: 0.75rem 1rem;
-    font-size: 9px;
+    padding: 1rem;
+    font-size: 10px;
     font-weight: 800;
     letter-spacing: 0.2em;
-    color: #64748b;
+    color: #94a3b8;
     text-transform: uppercase;
-    background: rgba(255, 255, 255, 0.03);
+    background: rgba(255, 255, 255, 0.02);
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-
-    @media (max-width: 480px) {
-      padding: 0.5rem 0.75rem;
-      font-size: 7px;
-      letter-spacing: 0.1em;
-    }
-  }
-
-  .hide-mobile {
-    @media (max-width: 640px) {
-      display: none;
-    }
   }
 `;
 
 const TableRow = styled.tr<{ active: boolean }>`
   border-bottom: 1px solid rgba(255, 255, 255, 0.03);
-  transition: background 0.2s;
-  background: ${({ active }) => active ? 'rgba(59, 130, 246, 0.05)' : 'transparent'};
+  transition: all 0.3s;
+  background: ${({ active }) => active ? 'rgba(59, 130, 246, 0.08)' : 'transparent'};
 
   &:hover {
-    background: rgba(255, 255, 255, 0.02);
-  }
-
-  @media (max-width: 480px) {
-    td {
-      padding: 0.25rem 0;
-    }
+    background: rgba(255, 255, 255, 0.03);
   }
 `;
 
 const InfoCell = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
-
-  @media (max-width: 480px) {
-    padding: 0.4rem 0.5rem;
-    gap: 0.4rem;
-  }
+  gap: 1rem;
+  padding: 1rem;
 `;
 
 const Thumb = styled.img`
-  width: 32px;
-  height: 32px;
-  border-radius: 6px;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
   object-fit: cover;
   border: 1px solid rgba(255, 255, 255, 0.1);
-
-  @media (max-width: 480px) {
-    width: 24px;
-    height: 24px;
-    border-radius: 4px;
-  }
 `;
 
 const NoThumb = styled.div`
-  width: 32px;
-  height: 32px;
-  border-radius: 6px;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
   background: #1e293b;
   display: flex;
   align-items: center;
@@ -639,24 +551,16 @@ const NoThumb = styled.div`
 `;
 
 const Description = styled.div`
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   color: white;
-  margin-bottom: 1px;
-
-  @media (max-width: 480px) {
-    font-size: 10px;
-  }
+  margin-bottom: 2px;
 `;
 
 const Suggestion = styled.div`
-  font-size: 10px;
+  font-size: 11px;
   color: #64748b;
   font-style: italic;
-
-  @media (max-width: 480px) {
-    font-size: 8px;
-  }
 `;
 
 const MobileOnly = styled.div`
@@ -668,276 +572,207 @@ const MobileOnly = styled.div`
 `;
 
 const Badge = styled.span`
-  padding: 3px 6px;
-  border-radius: 4px;
+  padding: 2px 8px;
+  border-radius: 6px;
   background: rgba(59, 130, 246, 0.1);
   border: 1px solid rgba(59, 130, 246, 0.2);
   color: #60a5fa;
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 700;
   text-transform: uppercase;
-
-  @media (max-width: 480px) {
-    font-size: 7px;
-    padding: 2px 4px;
-  }
 `;
 
 const DateCell = styled.div`
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 11px;
+  gap: 8px;
+  font-size: 12px;
   color: #94a3b8;
-
-  @media (max-width: 480px) {
-    font-size: 9px;
-    gap: 4px;
-    svg {
-      width: 10px;
-      height: 10px;
-    }
-  }
 `;
 
 const StatusBadge = styled.div<{ color: string, bg: string, border: string }>`
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 3px 8px;
+  gap: 8px;
+  padding: 4px 12px;
   border-radius: 20px;
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 800;
   color: ${({ color }) => color};
   background: ${({ bg }) => bg};
   border: 1px solid ${({ border }) => border};
-
-  @media (max-width: 480px) {
-    font-size: 7px;
-    padding: 2px 6px;
-    gap: 4px;
-    svg {
-      width: 8px;
-      height: 8px;
-    }
-  }
 `;
 
 const ActionGroup = styled.div`
   display: flex;
   justify-content: flex-end;
-  gap: 6px;
-  padding-right: 1rem;
+  gap: 8px;
+  padding: 0.5rem 1rem;
+  flex-wrap: wrap;
 
   @media (max-width: 480px) {
-    padding-right: 0.5rem;
+    padding: 0.25rem 0.5rem;
     gap: 4px;
   }
 `;
 
 const ActionButton = styled.button<{ active?: boolean }>`
-  padding: 8px;
+  padding: 10px;
   border-radius: 12px;
-  background: ${({ active }) => active ? 'linear-gradient(135deg, #3b82f6, #1d4ed8)' : 'rgba(255, 255, 255, 0.03)'};
-  color: ${({ active }) => active ? 'white' : '#94a3b8'};
-  border: 1px solid ${({ active }) => active ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.05)'};
+  background: ${({ active }) => active ? 'rgba(59, 130, 246, 0.2)' : 'rgba(255, 255, 255, 0.03)'};
+  color: ${({ active }) => active ? '#60a5fa' : '#94a3b8'};
+  border: 1px solid ${({ active }) => active ? 'rgba(59, 130, 246, 0.3)' : 'rgba(255, 255, 255, 0.05)'};
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: ${({ active }) => active ? '0 10px 20px -5px rgba(37, 99, 235, 0.4)' : 'none'};
-
-  @media (max-width: 480px) {
-    padding: 6px;
-    border-radius: 8px;
-    svg {
-      width: 14px;
-      height: 14px;
-    }
-  }
 
   &:hover {
-    background: ${({ active }) => active ? 'linear-gradient(135deg, #2563eb, #1e40af)' : 'rgba(255, 255, 255, 0.08)'};
+    background: rgba(255, 255, 255, 0.08);
     color: white;
-    transform: translateY(-2px);
-    border-color: rgba(255, 255, 255, 0.1);
-  }
-
-  &:active {
-    transform: translateY(0);
+    transform: translateY(-1px);
   }
 `;
 
 const EditButton = styled(ActionButton)`
-  gap: 6px;
-  padding: 8px 14px;
+  gap: 8px;
+  padding: 8px 16px;
   
   span {
-    font-size: 10px;
-    font-weight: 800;
+    font-size: 11px;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.1em;
-  }
-
-  @media (max-width: 480px) {
-    padding: 6px 10px;
-    span {
-      font-size: 8px;
-    }
-    svg {
-      width: 12px;
-      height: 12px;
-    }
+    letter-spacing: 0.05em;
   }
 `;
 
 const EditRow = styled.tr`
-  background: linear-gradient(to bottom, rgba(59, 130, 246, 0.05), transparent);
+  background: rgba(0, 0, 0, 0.2);
 `;
 
 const EditPanel = styled.div`
-  padding: 2rem;
+  padding: 1.5rem;
   display: flex;
   flex-direction: column;
-  align-items: stretch;
   gap: 1.5rem;
-  border-top: 1px solid rgba(59, 130, 246, 0.15);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
   position: relative;
-  overflow: hidden;
-
-  @media (max-width: 768px) {
-    padding: 0.75rem;
-    gap: 0.5rem;
-  }
 
   &::before {
     content: '';
     position: absolute;
     top: 0;
     left: 0;
-    width: 4px;
+    width: 3px;
     height: 100%;
-    background: linear-gradient(to bottom, #3b82f6, #10b981);
+    background: #3b82f6;
   }
 `;
 
 const InputGroup = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  flex: 1;
-
-  @media (max-width: 480px) {
-    gap: 4px;
-  }
+  gap: 8px;
 
   label {
     font-size: 10px;
-    font-weight: 900;
-    color: #60a5fa;
-    letter-spacing: 0.15em;
+    font-weight: 800;
+    color: #64748b;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
-    opacity: 0.8;
-
-    @media (max-width: 480px) {
-      font-size: 8px;
-    }
   }
 
   input, textarea {
-    background: rgba(15, 23, 42, 0.8);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 16px;
-    padding: 14px 18px;
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 12px 16px;
     color: white;
-    font-size: 13px;
+    font-size: 14px;
     outline: none;
-    transition: all 0.3s;
-    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
-
-    @media (max-width: 480px) {
-      padding: 8px 12px;
-      font-size: 10px;
-      border-radius: 10px;
-    }
+    transition: all 0.2s;
 
     &:focus {
       border-color: #3b82f6;
-      background: rgba(15, 23, 42, 1);
-      box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1), inset 0 2px 4px rgba(0, 0, 0, 0.2);
-    }
-
-    &::placeholder {
-      color: #475569;
+      background: rgba(15, 23, 42, 0.8);
     }
   }
 `;
 
 const ButtonGroup = styled.div`
   display: flex;
-  flex-direction: column;
   gap: 12px;
-
-  @media (max-width: 480px) {
-    gap: 8px;
-  }
 `;
 
 const SubmitBtn = styled.button`
-  padding: 14px 24px;
-  border-radius: 16px;
-  background: linear-gradient(135deg, #10b981', #10b981');
+  padding: 10px 20px;
+  border-radius: 12px;
+  background: #3b82f6;
   color: white;
   font-size: 11px;
-  font-weight: 900;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: none;
   cursor: pointer;
-  transition: all 0.3s;
-  box-shadow: 0 10px 25px -5px rgba(26, 153, 34, 0.4);
-
-  @media (max-width: 480px) {
-    padding: 10px 16px;
-    font-size: 9px;
-    border-radius: 12px;
-  }
+  transition: all 0.2s;
 
   &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 15px 30px -5px rgba(29, 110, 51, 0.5);
     filter: brightness(1.1);
+    transform: translateY(-1px);
   }
 
-  &:active {
-    transform: translateY(0);
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 `;
 
 const CancelBtn = styled.button`
-  padding: 14px 24px;
-  background: rgba(255, 255, 255, 0.03);
+  padding: 10px 20px;
+  background: transparent;
   color: #94a3b8;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
   cursor: pointer;
-  transition: all 0.3s;
-
-  @media (max-width: 480px) {
-    padding: 10px 16px;
-    font-size: 9px;
-    border-radius: 12px;
-  }
+  transition: all 0.2s;
 
   &:hover {
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.05);
     color: white;
   }
+`;
+
+const UserResultItem = styled.div`
+  padding: 10px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: #cbd5e1;
+
+  &:hover {
+    background: rgba(59, 130, 246, 0.1);
+    color: white;
+  }
+`;
+
+const SelectedBadge = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: rgba(99, 102, 241, 0.2);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  border-radius: 20px;
+  color: #818cf8;
+  font-size: 11px;
+  font-weight: 600;
 `;
 
 const Empty = styled.div`
