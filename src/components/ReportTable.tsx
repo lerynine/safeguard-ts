@@ -43,6 +43,7 @@ const STATUS_CONFIG = {
 
 export default function ReportTable({
   reports,
+  user,
   onUpdate,
   onImageClick,
   hideActions = false
@@ -101,38 +102,37 @@ export default function ReportTable({
   };
 
   const handleSearchUser = async () => {
-    console.log("🔍 Searching for user with name prefix:", searchName);
+    console.log("🔍 Searching for user with name (case-insensitive):", searchName);
     if (!searchName.trim()) {
       console.log("⚠️ Search name is empty, skipping.");
       return;
     }
     try {
       setLoadingUserSearch(true);
-      // Firestore prefix search is case-sensitive. 
-      // Using "nama" as requested by the user.
-      const q = query(
-        collection(db, "users"),
-        where("nama", ">=", searchName),
-        where("nama", "<=", searchName + "\uf8ff")
-      );
-      console.log("📡 Executing Firestore query...");
-      const snapshot = await getDocs(q);
-      console.log("📦 Snapshot size:", snapshot.size);
       
-      const results = snapshot.docs.map(doc => {
-        const data = doc.data();
-        console.log(`👤 User Found [${doc.id}]:`, data);
-        return {
-          id: data.uid || doc.id, // Use UID field as the identifier for selection
-          docId: doc.id,
-          ...data
-        };
-      });
+      // Fetch all users and filter in JS for case-insensitivity
+      // This is the most reliable way without schema changes in Firestore
+      console.log("📡 Fetching all users from Firestore for client-side filtering...");
+      const snapshot = await getDocs(collection(db, "users"));
+      console.log("📦 Total users in collection:", snapshot.size);
       
-      if (results.length === 0) {
-        console.log("ℹ️ No users found matching the criteria.");
-      }
-      
+      const q = searchName.toLowerCase();
+      const results = snapshot.docs
+        .map(doc => {
+          const data = doc.data();
+          const userUid = data.uid;
+          return {
+            id: userUid || doc.id,
+            docId: doc.id,
+            ...data
+          };
+        })
+        .filter((user: any) => {
+          const name = (user.nama || "").toLowerCase();
+          return name.includes(q);
+        });
+
+      console.log("✅ Filtered results count:", results.length);
       setSearchResults(results);
     } catch (error) {
       console.error("❌ Error search user:", error);
@@ -436,17 +436,19 @@ export default function ReportTable({
                                         // 2. Create notification in Firestore with the requested schema
                                         try {
                                           const notificationsRef = collection(db, "notifications");
+                                          const senderName = user?.name || "Admin";
                                           
                                           console.log("🔔 Creating notification document...");
                                           await addDoc(notificationsRef, {
                                             id: report.id,
-                                            title: report.description || "Disposisi Temuan",
-                                            message: disposisiMessage,
-                                            toUserId: selectedUsers, // Array of selected user UIDs
+                                            title: `Disposisi dari ${senderName}`,
+                                            reportTitle: report.description || "Temuan",
+                                            message: `instruksi: ${disposisiMessage}`,
+                                            toUserId: selectedUsers,
                                             isRead: false,
                                             createdAt: serverTimestamp()
                                           });
-                                          console.log("✅ Notification successfully created with schema: { id, title, message, toUserId, isRead, createdAt }");
+                                          console.log("✅ Notification successfully created with sender name and formatted message.");
                                         } catch (err) {
                                           console.error("❌ Failed to create notification:", err);
                                         }

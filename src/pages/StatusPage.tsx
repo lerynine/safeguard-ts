@@ -69,8 +69,8 @@ export default function StatusPage({
       const q = searchQuery.toLowerCase();
       result = result.filter(
         (r) =>
-          r.description.toLowerCase().includes(q) ||
-          r.findingType.toLowerCase().includes(q),
+          (r.description || "").toLowerCase().includes(q) ||
+          (r.findingType || "").toLowerCase().includes(q),
       );
     }
     return result.sort((a, b) => {
@@ -186,10 +186,29 @@ export default function StatusPage({
                   <NotifList>
                     {notifications.length ? (
                       [...notifications].reverse().map((n) => (
-                        <NotifItem key={n.id}>
-                          <strong>{n.title}</strong>
-                          <small>{n.time}</small>
+                        <NotifItem 
+                          key={n.id}
+                          unread={!n.isRead}
+                          onClick={() => {
+                            setIsNotifOpen(false);
+                            navigate("/reports/menunggu");
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                            <strong>{n.title}</strong>
+                            {!n.isRead && <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#3b82f6', marginTop: 4 }} />}
+                          </div>
+                          {n.reportTitle && <p style={{ color: '#f8fafc', fontWeight: 600, fontSize: '0.75rem', marginBottom: '2px' }}>{n.reportTitle}</p>}
                           <p>{n.message}</p>
+                          <small style={{ display: 'block', marginTop: '4px', color: '#64748b' }}>
+                            {n.createdAt?.seconds ? new Date(n.createdAt.seconds * 1000).toLocaleString('id-ID', {
+                              day: '2-digit',
+                              month: 'short',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            }) : "Baru saja"}
+                          </small>
                         </NotifItem>
                       ))
                     ) : (
@@ -717,13 +736,16 @@ const NotifList = styled.div`
   }
 `;
 
-const NotifItem = styled.div`
+const NotifItem = styled.div<{ unread?: boolean }>`
   padding: 0.85rem 1rem;
+  background: ${({ unread }) => unread ? 'rgba(59, 130, 246, 0.05)' : '#020617'};
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  transition: background 0.2s;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-left: 3px solid ${({ unread }) => unread ? '#3b82f6' : 'transparent'};
 
   &:hover {
-    background: rgba(255, 255, 255, 0.02);
+    background: ${({ unread }) => unread ? 'rgba(59, 130, 246, 0.1)' : 'rgba(255, 255, 255, 0.03)'};
   }
 
   strong {
