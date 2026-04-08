@@ -15,7 +15,8 @@ import {
   serverTimestamp,
   query,
   where,
-  orderBy
+  orderBy,
+  writeBatch
 } from "firebase/firestore";
 import { auth, db } from "./firebase";
 import { UserRole, ReportStatus } from "./constants/enums";
@@ -49,13 +50,10 @@ export default function App() {
     const unsub = onSnapshot(q, (snapshot) => {
       console.log("🔥 Snapshot masuk, jumlah:", snapshot.size);
 
-      const notifData = snapshot.docs.map((doc) => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          ...data,
-        };
-      });
+      const notifData = snapshot.docs.map((doc) => ({
+        ...doc.data(),
+        id: doc.id,
+      }));
 
       console.log("📦 Final notifData:", notifData);
       setNotifications(notifData);
@@ -91,8 +89,8 @@ export default function App() {
 
     const unsubActions = onSnapshot(collection(db, "unsafe_actions"), (snapshot) => {
       const actions = snapshot.docs.map((doc) => ({
-        id: doc.id,
         ...doc.data(),
+        id: doc.id,
         findingType: "Unsafe Action",
       }));
       setReports((prev) => {
@@ -103,8 +101,8 @@ export default function App() {
 
     const unsubConditions = onSnapshot(collection(db, "unsafe_conditions"), (snapshot) => {
       const conditions = snapshot.docs.map((doc) => ({
-        id: doc.id,
         ...doc.data(),
+        id: doc.id,
         findingType: "Unsafe Condition",
       }));
       setReports((prev) => {
@@ -174,11 +172,30 @@ export default function App() {
     }
   };
 
+  const handleMarkNotificationAsRead = async (id: string) => {
+    try {
+      const ref = doc(db, "notifications", id);
+      await updateDoc(ref, { isRead: true });
+    } catch (error) {
+      console.error("Error marking notification as read:", error);
+    }
+  };
+
   const handleMarkNotificationsAsRead = async () => {
     const unread = notifications.filter((n) => !n.isRead);
-    for (const notif of unread) {
+    if (unread.length === 0) return;
+
+    const batch = writeBatch(db);
+    
+    unread.forEach((notif) => {
       const ref = doc(db, "notifications", notif.id);
-      await updateDoc(ref, { isRead: true });
+      batch.update(ref, { isRead: true });
+    });
+
+    try {
+      await batch.commit();
+    } catch (error) {
+      console.error("Error marking all notifications as read:", error);
     }
   };
 
@@ -206,6 +223,7 @@ export default function App() {
                 onAddReport={handleAddReport}
                 onUpdateReport={handleUpdateReport}
                 onMarkNotificationsAsRead={handleMarkNotificationsAsRead}
+                onMarkNotificationAsRead={handleMarkNotificationAsRead}
                 onLogout={handleLogout}
               />
             }
@@ -221,6 +239,7 @@ export default function App() {
                 onAddReport={handleAddReport}
                 onUpdateReport={handleUpdateReport}
                 onMarkNotificationsAsRead={handleMarkNotificationsAsRead}
+                onMarkNotificationAsRead={handleMarkNotificationAsRead}
                 onLogout={handleLogout}
               />
             }
@@ -236,6 +255,7 @@ export default function App() {
                 onAddReport={handleAddReport}
                 onUpdateReport={handleUpdateReport}
                 onMarkNotificationsAsRead={handleMarkNotificationsAsRead}
+                onMarkNotificationAsRead={handleMarkNotificationAsRead}
                 onLogout={handleLogout}
               />
             }
@@ -251,6 +271,7 @@ export default function App() {
                 onAddReport={handleAddReport}
                 onUpdateReport={handleUpdateReport}
                 onMarkNotificationsAsRead={handleMarkNotificationsAsRead}
+                onMarkNotificationAsRead={handleMarkNotificationAsRead}
                 onLogout={handleLogout}
               />
             }

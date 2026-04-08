@@ -34,7 +34,7 @@ const PelindoLogo = () => (
   <motion.img
     initial={{ opacity: 0, scale: 0.8 }}
     animate={{ opacity: 1, scale: 1 }}
-    src="/Pelindo Multi Terminal.jpg"
+    src="/Pelindo Multi Terminal.png"
     alt="Pelindo Multi Terminal"
     style={{
       height: 32,
@@ -52,6 +52,7 @@ export default function Dashboard({
   onAddReport,
   onUpdateReport,
   onMarkNotificationsAsRead,
+  onMarkNotificationAsRead,
   onLogout,
 }: {
   user: any;
@@ -60,6 +61,7 @@ export default function Dashboard({
   onAddReport: (data: any) => void;
   onUpdateReport: (id: string, updates: any) => void;
   onMarkNotificationsAsRead: () => void;
+  onMarkNotificationAsRead: (id: string) => void;
   onLogout: () => void;
 }) {
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
@@ -85,7 +87,7 @@ export default function Dashboard({
     const hour = new Date().getHours();
     const g =
       hour < 12 ? "Pagi" : hour < 15 ? "Siang" : hour < 18 ? "Sore" : "Malam";
-    setGreeting(`Selamat ${g}, ${user.name?.split(" ")[0] || "User"}`);
+    setGreeting(`Selamat ${g}, ${user.name || "User"}`);
   }, [user.name]);
 
   // Notifications are already filtered by the Firestore query in App.tsx
@@ -125,7 +127,6 @@ export default function Dashboard({
   }, [reports, searchQuery, sortOrder]);
 
   const handleToggleNotif = () => {
-    if (!isNotifOpen) onMarkNotificationsAsRead();
     setIsNotifOpen(!isNotifOpen);
   };
 
@@ -212,7 +213,30 @@ export default function Dashboard({
                   exit={{ opacity: 0, y: 10, scale: 0.95 }}
                 >
                   <NotifHeader>
-                    <span>Notifikasi</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span>Notifikasi</span>
+                      {hasUnread && (
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onMarkNotificationsAsRead();
+                          }}
+                          style={{ 
+                            background: 'none', 
+                            border: 'none', 
+                            color: '#3b82f6', 
+                            fontSize: '0.6rem', 
+                            cursor: 'pointer',
+                            padding: '2px 4px',
+                            borderRadius: '4px',
+                            textTransform: 'uppercase',
+                            fontWeight: 700
+                          }}
+                        >
+                          Tandai semua dibaca
+                        </button>
+                      )}
+                    </div>
                     <X size={14} onClick={() => setIsNotifOpen(false)} style={{ cursor: 'pointer' }} />
                   </NotifHeader>
                   <NotifList>
@@ -222,6 +246,7 @@ export default function Dashboard({
                             key={n.id} 
                             unread={!n.isRead}
                             onClick={() => {
+                              if (!n.isRead) onMarkNotificationAsRead(n.id);
                               setIsNotifOpen(false);
                               navigate("/reports/menunggu");
                             }}
