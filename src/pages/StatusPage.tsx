@@ -26,7 +26,7 @@ const PelindoLogo = () => (
   <motion.img
     initial={{ opacity: 0, scale: 0.8 }}
     animate={{ opacity: 1, scale: 1 }}
-    src="/Pelindo Multi Terminal.png"
+    src="/Pelindo Multi Terminal.jpg"
     alt="Pelindo Multi Terminal"
     style={{
       height: 32,
@@ -40,6 +40,7 @@ const PelindoLogo = () => (
 export default function StatusPage({
   user,
   reports,
+  allReports = [],
   status,
   notifications,
   onAddReport,
@@ -50,6 +51,7 @@ export default function StatusPage({
 }: {
   user: any;
   reports: any[];
+  allReports?: any[];
   status: string;
   notifications: any[];
   onAddReport: (data: any) => void;
@@ -216,7 +218,20 @@ export default function StatusPage({
                           onClick={() => {
                             if (!n.isRead) onMarkNotificationAsRead(n.id);
                             setIsNotifOpen(false);
-                            navigate("/reports/menunggu");
+                            
+                            // Determine target path based on report status
+                            const reportId = n.reportId || n.id;
+                            const targetReport = allReports.find(r => 
+                              r.id === reportId && 
+                              (!n.findingType || r.findingType === n.findingType)
+                            );
+                            
+                            let path = "/reports/menunggu";
+                            if (targetReport) {
+                              if (targetReport.status === ReportStatus.IN_PROGRESS) path = "/reports/diproses";
+                              else if (targetReport.status === ReportStatus.CLOSED) path = "/reports/selesai";
+                            }
+                            navigate(path);
                           }}
                         >
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>

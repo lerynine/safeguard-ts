@@ -65,8 +65,11 @@ export default function App() {
   }, [user]);
 
   useEffect(() => {
+    let unsubProfile: (() => void) | null = null;
+
     const unsubAuth = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
+        // Initial user state from auth
         setUser({
           uid: firebaseUser.uid,
           name: firebaseUser.email?.split("@")[0].toUpperCase() || "USER",
@@ -75,13 +78,41 @@ export default function App() {
           role: firebaseUser.email?.includes("admin") ? UserRole.BPO : UserRole.USER,
           email: firebaseUser.email,
         });
+
+        // Fetch additional profile data from 'users' collection
+        const userRef = doc(db, "users", firebaseUser.uid);
+        unsubProfile = onSnapshot(userRef, (docSnap) => {
+          if (docSnap.exists()) {
+            const userData = docSnap.data();
+            setUser((prev: any) => ({
+              ...prev,
+              name: userData.nama || prev.name,
+              position: userData.jabatan || prev.position,
+              division: userData.divisi || prev.division,
+              role: userData.role || prev.role,
+            }));
+          }
+        });
       } else {
         setUser(null);
+        if (unsubProfile) {
+          unsubProfile();
+          unsubProfile = null;
+        }
       }
       setLoading(false);
     });
 
-    return () => unsubAuth();
+    // Fallback: stop loading after 5 seconds even if Firebase doesn't respond
+    const timeout = setTimeout(() => {
+      setLoading(false);
+    }, 5000);
+
+    return () => {
+      unsubAuth();
+      if (unsubProfile) unsubProfile();
+      clearTimeout(timeout);
+    };
   }, []);
 
   useEffect(() => {
@@ -203,7 +234,33 @@ export default function App() {
     await signOut(auth);
   };
 
-  if (loading) return null;
+  if (loading) {
+    return (
+      <div style={{ 
+        height: '100vh', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        background: '#020617', 
+        color: 'white',
+        flexDirection: 'column',
+        gap: '1rem'
+      }}>
+        <div style={{ 
+          width: '40px', 
+          height: '40px', 
+          border: '3px solid rgba(255,255,255,0.1)', 
+          borderTopColor: '#3b82f6', 
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite'
+        }} />
+        <p style={{ color: '#94a3b8', fontSize: '0.9rem' }}>Memuat Aplikasi...</p>
+        <style>{`
+          @keyframes spin { to { transform: rotate(360deg); } }
+        `}</style>
+      </div>
+    );
+  }
 
   return (
     <BrowserRouter>
@@ -234,6 +291,7 @@ export default function App() {
               <StatusPage
                 user={user}
                 reports={reports.filter((r) => r.status === ReportStatus.OPEN)}
+                allReports={reports}
                 status={ReportStatus.OPEN}
                 notifications={notifications}
                 onAddReport={handleAddReport}
@@ -250,6 +308,7 @@ export default function App() {
               <StatusPage
                 user={user}
                 reports={reports.filter((r) => r.status === ReportStatus.IN_PROGRESS)}
+                allReports={reports}
                 status={ReportStatus.IN_PROGRESS}
                 notifications={notifications}
                 onAddReport={handleAddReport}
@@ -266,6 +325,7 @@ export default function App() {
               <StatusPage
                 user={user}
                 reports={reports.filter((r) => r.status === ReportStatus.CLOSED)}
+                allReports={reports}
                 status={ReportStatus.CLOSED}
                 notifications={notifications}
                 onAddReport={handleAddReport}

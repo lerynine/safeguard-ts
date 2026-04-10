@@ -440,7 +440,8 @@ export default function ReportTable({
                                           
                                           console.log("🔔 Creating notification document...");
                                           await addDoc(notificationsRef, {
-                                            id: report.id,
+                                            reportId: report.id,
+                                            findingType: report.findingType,
                                             title: `Disposisi dari ${senderName}`,
                                             reportTitle: report.description || "Temuan",
                                             message: `instruksi: ${disposisiMessage}`,
