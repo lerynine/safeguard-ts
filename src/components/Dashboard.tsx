@@ -16,12 +16,16 @@ import {
   Filter,
   ArrowDownWideNarrow,
   ArrowUpWideNarrow,
+  BarChart3,
+  Trophy,
+  AlertOctagon
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 import { ReportStatus, UserRole } from "../constants/enums";
 import ReportForm from "./ReportForm";
 import ReportCard from "./ReportCard";
+import SOSModal from "./SOSModal";
 
 const COLOR_MAP = {
   blue: { bg: "rgba(59,130,246,0.1)", text: "#60a5fa" },
@@ -34,7 +38,7 @@ const PelindoLogo = () => (
   <motion.img
     initial={{ opacity: 0, scale: 0.8 }}
     animate={{ opacity: 1, scale: 1 }}
-    src="/Pelindo Multi Terminal.jpg"
+    src="/Pelindo Multi Terminal.png"
     alt="Pelindo Multi Terminal"
     style={{
       height: 32,
@@ -65,6 +69,7 @@ export default function Dashboard({
   onLogout: () => void;
 }) {
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [isSOSOpen, setIsSOSOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortOrder, setSortOrder] = useState("newest");
   const [isNotifOpen, setIsNotifOpen] = useState(false);
@@ -191,6 +196,21 @@ export default function Dashboard({
         </HeaderLeft>
 
         <HeaderRight>
+          <SOSBtn onClick={() => setIsSOSOpen(true)}>
+            <AlertOctagon size={18} />
+            <span>SOS</span>
+          </SOSBtn>
+
+          <IconButton 
+            onClick={() => navigate("/leaderboard")}
+            as={motion.button}
+            whileHover={{ scale: 1.1, backgroundColor: 'rgba(251, 191, 36, 0.1)' }}
+            whileTap={{ scale: 0.9 }}
+            title="Leaderboard K3"
+          >
+            <Trophy size={18} color="#fbbf24" />
+          </IconButton>
+
           <NotifWrapper>
             <IconButton 
               active={isNotifOpen} 
@@ -289,6 +309,16 @@ export default function Dashboard({
               )}
             </AnimatePresence>
           </NotifWrapper>
+
+          <IconButton 
+            onClick={() => navigate("/analytics")}
+            as={motion.button}
+            whileHover={{ scale: 1.1, backgroundColor: 'rgba(59, 130, 246, 0.1)' }}
+            whileTap={{ scale: 0.9 }}
+            title="Rekap Analitik"
+          >
+            <BarChart3 size={18} />
+          </IconButton>
 
           <PrimaryButton 
             onClick={() => setIsReportModalOpen(true)}
@@ -425,6 +455,12 @@ export default function Dashboard({
         )}
       </AnimatePresence>
 
+      <SOSModal 
+        isOpen={isSOSOpen} 
+        onClose={() => setIsSOSOpen(false)} 
+        user={user}
+      />
+
       <AnimatePresence>
         {selectedImage && (
           <LightboxOverlay
@@ -499,6 +535,32 @@ const HeaderRight = styled.div`
 
   @media (max-width: 768px) {
     gap: 0.5rem;
+  }
+`;
+
+const SOSBtn = styled.button`
+  background: #ef4444;
+  color: white;
+  border: none;
+  padding: 0.6rem 1rem;
+  border-radius: 0.75rem;
+  font-weight: 800;
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+  
+  &:hover {
+    background: #dc2626;
+    transform: scale(1.05);
+  }
+
+  @media (max-width: 480px) {
+    padding: 0.5rem 0.75rem;
+    span { display: none; }
   }
 `;
 

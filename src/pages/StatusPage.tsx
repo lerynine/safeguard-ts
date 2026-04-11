@@ -15,6 +15,7 @@ import {
   Search,
   ArrowDownWideNarrow,
   ArrowUpWideNarrow,
+  BarChart3,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -26,7 +27,7 @@ const PelindoLogo = () => (
   <motion.img
     initial={{ opacity: 0, scale: 0.8 }}
     animate={{ opacity: 1, scale: 1 }}
-    src="/Pelindo Multi Terminal.jpg"
+    src="/Pelindo Multi Terminal.png"
     alt="Pelindo Multi Terminal"
     style={{
       height: 32,
@@ -259,6 +260,16 @@ export default function StatusPage({
               )}
             </AnimatePresence>
           </NotifWrapper>
+
+          <IconButton 
+            onClick={() => navigate("/analytics")}
+            as={motion.button}
+            whileHover={{ scale: 1.1, backgroundColor: 'rgba(59, 130, 246, 0.1)' }}
+            whileTap={{ scale: 0.9 }}
+            title="Rekap Analitik"
+          >
+            <BarChart3 size={18} />
+          </IconButton>
 
           <PrimaryButton 
             onClick={() => setIsReportModalOpen(true)}

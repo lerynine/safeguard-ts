@@ -16,7 +16,10 @@ import {
   query,
   where,
   orderBy,
-  writeBatch
+  writeBatch,
+  increment,
+  setDoc,
+  getDoc
 } from "firebase/firestore";
 import { auth, db } from "./firebase";
 import { UserRole, ReportStatus } from "./constants/enums";
@@ -24,6 +27,8 @@ import { uploadToCloudinary } from "./utils/uploadToCloudinary";
 import Onboarding from "./components/Onboarding";
 import Dashboard from "./components/Dashboard";
 import StatusPage from "./pages/StatusPage";
+import AnalyticsPage from "./pages/AnalyticsPage";
+import LeaderboardPage from "./pages/LeaderboardPage";
 import GlobalStyle from "./components/GlobalStyle";
 
 export default function App() {
@@ -148,6 +153,21 @@ export default function App() {
     };
   }, [user]);
 
+  const incrementUserPoints = async (userId: string, amount: number) => {
+    const userRef = doc(db, "users", userId);
+    try {
+      const userSnap = await getDoc(userRef);
+      if (userSnap.exists()) {
+        await updateDoc(userRef, { points: increment(amount) });
+      } else {
+        // If user document doesn't exist yet, create it
+        await setDoc(userRef, { points: amount }, { merge: true });
+      }
+    } catch (error) {
+      console.error("Error incrementing points:", error);
+    }
+  };
+
   const handleAddReport = async (formData: any) => {
     if (!user) return;
     try {
@@ -160,6 +180,7 @@ export default function App() {
         suggestion: formData.suggestion,
         photoUrl: imageUrl,
         status: ReportStatus.OPEN,
+        findingType: formData.findingType,
         latitude: formData.latitude ?? null,
         longitude: formData.longitude ?? null,
         reportedBy: {
@@ -170,6 +191,9 @@ export default function App() {
         },
         createdAt: serverTimestamp(),
       });
+
+      // Award points for reporting
+      await incrementUserPoints(user.uid, 10);
     } catch (error) {
       console.error("Error saving report:", error);
       alert("Gagal mengirim laporan");
@@ -189,6 +213,12 @@ export default function App() {
     if (updates.handlingReport && report.status !== ReportStatus.CLOSED) {
       newStatus = ReportStatus.CLOSED;
       finalUpdates.closedAt = new Date().toISOString().split("T")[0];
+      
+      // Award points when report is closed
+      if (report.reportedBy?.uid) {
+        await incrementUserPoints(report.reportedBy.uid, 50); // Reporter gets 50 pts
+      }
+      await incrementUserPoints(user.uid, 20); // BPO gets 20 pts
     } else if ((updates.estimationDate || updates.moveToProses) && report.status === ReportStatus.OPEN) {
       newStatus = ReportStatus.IN_PROGRESS;
     }
@@ -242,7 +272,7 @@ export default function App() {
         alignItems: 'center', 
         justifyContent: 'center', 
         background: '#020617', 
-        color: 'white',
+        color: '#f8fafc',
         flexDirection: 'column',
         gap: '1rem'
       }}>
@@ -254,7 +284,7 @@ export default function App() {
           borderRadius: '50%',
           animation: 'spin 1s linear infinite'
         }} />
-        <p style={{ color: '#94a3b8', fontSize: '0.9rem' }}>Memuat Aplikasi...</p>
+        <p style={{ color: '#64748b', fontSize: '0.9rem' }}>Memuat Aplikasi...</p>
         <style>{`
           @keyframes spin { to { transform: rotate(360deg); } }
         `}</style>
@@ -335,6 +365,14 @@ export default function App() {
                 onLogout={handleLogout}
               />
             }
+          />
+          <Route
+            path="/analytics"
+            element={<AnalyticsPage reports={reports} />}
+          />
+          <Route
+            path="/leaderboard"
+            element={<LeaderboardPage />}
           />
         </Routes>
       )}
