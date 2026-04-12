@@ -2,8 +2,23 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertOctagon, X, PhoneCall, MapPin, ShieldAlert } from 'lucide-react';
+import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
+import L from 'leaflet';
 import { db, auth } from '../firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+
+// Fix for default marker icon in Leaflet
+import markerIcon from 'leaflet/dist/images/marker-icon.png';
+import markerShadow from 'leaflet/dist/images/marker-shadow.png';
+
+const DefaultIcon = L.icon({
+  iconUrl: markerIcon,
+  shadowUrl: markerShadow,
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+});
+
+L.Marker.prototype.options.icon = DefaultIcon;
 
 interface SOSModalProps {
   isOpen: boolean;
@@ -11,10 +26,38 @@ interface SOSModalProps {
   user: any;
 }
 
+function MapController({ center }: { center: [number, number] }) {
+  const map = useMap();
+  
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      map.invalidateSize();
+      map.setView(center, 16);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [map, center]);
+
+  return null;
+}
+
 export default function SOSModal({ isOpen, onClose, user }: SOSModalProps) {
   const [countdown, setCountdown] = useState(5);
   const [isSent, setIsSent] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [location, setLocation] = useState<{lat: number, lng: number}>({ lat: -6.1754, lng: 106.8272 });
+
+  useEffect(() => {
+    if (isOpen && !isSent) {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+          },
+          (err) => console.warn("SOS Geolocation error:", err)
+        );
+      }
+    }
+  }, [isOpen, isSent]);
 
   useEffect(() => {
     let timer: any;
@@ -34,10 +77,7 @@ export default function SOSModal({ isOpen, onClose, user }: SOSModalProps) {
         callerName: user?.name || 'Anonymous User',
         status: 'ACTIVE',
         createdAt: serverTimestamp(),
-        location: {
-          lat: -6.1754, // Placeholder for Pelabuhan Tanjung Priok
-          lng: 106.8272
-        }
+        location: location
       });
       setIsSent(true);
     } catch (error) {
@@ -94,6 +134,22 @@ export default function SOSModal({ isOpen, onClose, user }: SOSModalProps) {
                 <Description>
                   Bantuan sedang dalam perjalanan. Tetap tenang dan cari tempat aman.
                 </Description>
+                  <MapSection>
+                    <MapContainer 
+                      center={[location.lat, location.lng]} 
+                      zoom={16} 
+                      style={{ height: '100%', width: '100%' }}
+                      zoomControl={false}
+                    >
+                      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                      <Marker position={[location.lat, location.lng]} />
+                      <MapController center={[location.lat, location.lng]} />
+                    </MapContainer>
+                    <MapOverlay>
+                      <MapPin size={10} />
+                      <span>Lokasi Terdeteksi</span>
+                    </MapOverlay>
+                  </MapSection>
                 <InfoList>
                   <InfoItem><PhoneCall size={16} /> Tim Medis: 118</InfoItem>
                   <InfoItem><ShieldAlert size={16} /> Keamanan: Ext. 911</InfoItem>
@@ -151,6 +207,35 @@ const Description = styled.p`
   font-size: 1rem;
   line-height: 1.6;
   margin-bottom: 2rem;
+`;
+
+const MapSection = styled.div`
+  height: 150px;
+  width: 100%;
+  border-radius: 1.5rem;
+  overflow: hidden;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  position: relative;
+  z-index: 1;
+  margin-bottom: 2rem;
+`;
+
+const MapOverlay = styled.div`
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(15, 23, 42, 0.9);
+  padding: 4px 10px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  color: #ffffff;
+  z-index: 1000;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  font-weight: 700;
+  text-transform: uppercase;
 `;
 
 const Countdown = styled.div`

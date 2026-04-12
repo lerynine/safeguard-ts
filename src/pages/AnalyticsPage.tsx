@@ -7,7 +7,6 @@ import {
   PieChart as PieChartIcon, 
   TrendingUp, 
   Users, 
-  Award,
   Calendar,
   Filter,
   CheckCircle2,
@@ -65,22 +64,7 @@ export default function AnalyticsPage({ reports }: { reports: any[] }) {
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value);
 
-    // 4. Top Reporters
-    const reporterMap: Record<string, { name: string, count: number, division: string }> = {};
-    reports.forEach(r => {
-      const uid = r.reportedBy?.uid;
-      if (uid) {
-        if (!reporterMap[uid]) {
-          reporterMap[uid] = { name: r.reportedBy.name, count: 0, division: r.reportedBy.division };
-        }
-        reporterMap[uid].count++;
-      }
-    });
-    const topReporters = Object.values(reporterMap)
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 5);
-
-    // 5. Trend (Last 14 days for more data)
+    // 4. Trend (Last 14 days for more data)
     const last14Days = [...Array(14)].map((_, i) => {
       const d = new Date();
       d.setDate(d.getDate() - i);
@@ -113,7 +97,7 @@ export default function AnalyticsPage({ reports }: { reports: any[] }) {
 
     return { 
       total, closed, inProgress, open, resolutionRate,
-      statusData, divisionData, topReporters, typeData, trendData, dayData 
+      statusData, divisionData, typeData, trendData, dayData 
     };
   }, [reports]);
 
@@ -182,8 +166,8 @@ export default function AnalyticsPage({ reports }: { reports: any[] }) {
                 <XAxis dataKey="date" stroke="#ffffff" fontSize={10} tickLine={false} axisLine={false} />
                 <YAxis stroke="#ffffff" fontSize={10} tickLine={false} axisLine={false} />
                 <Tooltip 
-                  contentStyle={{ background: "#0f172a", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "8px" }}
-                  itemStyle={{ color: "#fff" }}
+                  contentStyle={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "8px", boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)" }}
+                  itemStyle={{ color: "#0f172a" }}
                 />
                 <Area type="monotone" dataKey="count" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorCount)" />
               </AreaChart>
@@ -212,7 +196,7 @@ export default function AnalyticsPage({ reports }: { reports: any[] }) {
                   ))}
                 </Pie>
                 <Tooltip 
-                  contentStyle={{ background: "#0f172a", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "8px" }}
+                  contentStyle={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "8px", boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)" }}
                 />
                 <Legend verticalAlign="bottom" height={36}/>
               </PieChart>
@@ -220,31 +204,8 @@ export default function AnalyticsPage({ reports }: { reports: any[] }) {
           </ChartContainer>
         </BentoItem>
 
-        {/* Top Reporters */}
-        <BentoItem as={motion.div} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-          <CardHeader>
-            <Award size={18} color="#34d399" />
-            <h3>Top Pelapor</h3>
-          </CardHeader>
-          <ReporterList>
-            {stats.topReporters.map((rep, i) => (
-              <ReporterItem key={i}>
-                <Rank>{i + 1}</Rank>
-                <ReporterInfo>
-                  <h4>{rep.name}</h4>
-                  <span>{rep.division}</span>
-                </ReporterInfo>
-                <CountBadge>{rep.count}</CountBadge>
-              </ReporterItem>
-            ))}
-            {stats.topReporters.length === 0 && (
-              <EmptyText>Belum ada data pelapor</EmptyText>
-            )}
-          </ReporterList>
-        </BentoItem>
-
         {/* Division Bar Chart */}
-        <BentoItem className="span-2" as={motion.div} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+        <BentoItem className="span-2" as={motion.div} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
           <CardHeader>
             <BarChart3 size={18} color="#818cf8" />
             <h3>Laporan per Divisi</h3>
@@ -256,8 +217,8 @@ export default function AnalyticsPage({ reports }: { reports: any[] }) {
                 <XAxis type="number" stroke="#ffffff" fontSize={10} tickLine={false} axisLine={false} />
                 <YAxis dataKey="name" type="category" stroke="#ffffff" fontSize={10} width={100} tickLine={false} axisLine={false} />
                 <Tooltip 
-                  cursor={{ fill: 'rgba(255,255,255,0.02)' }}
-                  contentStyle={{ background: "#0f172a", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "8px" }}
+                  cursor={{ fill: 'rgba(0,0,0,0.02)' }}
+                  contentStyle={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "8px", boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)" }}
                 />
                 <Bar dataKey="value" fill="#818cf8" radius={[0, 4, 4, 0]} barSize={20} />
               </BarChart>
@@ -266,7 +227,7 @@ export default function AnalyticsPage({ reports }: { reports: any[] }) {
         </BentoItem>
 
         {/* Day of Week Chart */}
-        <BentoItem as={motion.div} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+        <BentoItem as={motion.div} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
           <CardHeader>
             <Calendar size={18} color="#f43f5e" />
             <h3>Aktivitas per Hari</h3>
@@ -278,8 +239,8 @@ export default function AnalyticsPage({ reports }: { reports: any[] }) {
                 <XAxis dataKey="name" stroke="#ffffff" fontSize={10} tickLine={false} axisLine={false} />
                 <YAxis stroke="#ffffff" fontSize={10} tickLine={false} axisLine={false} />
                 <Tooltip 
-                  cursor={{ fill: 'rgba(255,255,255,0.02)' }}
-                  contentStyle={{ background: "#0f172a", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "8px" }}
+                  cursor={{ fill: 'rgba(0,0,0,0.02)' }}
+                  contentStyle={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "8px", boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)" }}
                 />
                 <Bar dataKey="value" fill="#f43f5e" radius={[4, 4, 0, 0]} barSize={25} />
               </BarChart>
@@ -312,16 +273,22 @@ const Container = styled.div`
   max-width: 1200px;
   margin: 0 auto;
   min-height: 100vh;
-  color: #f8fafc;
+  color: #e5e7eb;
+  background: rgba(52, 59, 92, 0.4);
 `;
 
 const Header = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem 1.5rem;
+  padding: 1.25rem 1.5rem;
   margin-bottom: 2rem;
   border-radius: 1rem;
+  background: rgba(6, 14, 49, 0.85);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+  color: #f8fafc;
 `;
 
 const HeaderLeft = styled.div`
@@ -330,9 +297,10 @@ const HeaderLeft = styled.div`
   gap: 1rem;
   cursor: pointer;
   transition: all 0.2s;
+  color: var(--text-primary);
   
   &:hover {
-    color: #3b82f6;
+    color: var(--primary);
     transform: translateX(-5px);
   }
 `;
@@ -346,7 +314,7 @@ const HeaderRight = styled.div`
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  color: #64748b;
+  color: #ffffff;
   font-size: 0.875rem;
 `;
 
@@ -358,14 +326,21 @@ const KPIRow = styled.div`
 `;
 
 const KPICard = styled.div`
-  background: rgba(15, 23, 42, 0.4);
+  background: var(--card-bg);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 1rem;
-  padding: 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: 1.25rem;
+  padding: 1.5rem;
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 1.25rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
+  }
 `;
 
 const KPIIcon = styled.div<{ color: string }>`
@@ -415,27 +390,28 @@ const BentoGrid = styled.div`
 `;
 
 const BentoItem = styled.div`
-  background: rgba(15, 23, 42, 0.4);
+  background: var(--card-bg);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 1.25rem;
-  padding: 1.5rem;
+  border: 1px solid var(--border);
+  border-radius: 1.5rem;
+  padding: 1.75rem;
   display: flex;
   flex-direction: column;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
 `;
 
 const CardHeader = styled.div`
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.75rem;
   
   h3 {
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: #f8fafc;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-primary);
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.08em;
   }
 `;
 
@@ -444,72 +420,11 @@ const ChartContainer = styled.div`
   min-height: 200px;
 `;
 
-const ReporterList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-`;
-
-const ReporterItem = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 0.75rem;
-  background: rgba(255, 255, 255, 0.02);
-  border-radius: 0.75rem;
-  transition: background 0.2s;
-  
-  &:hover {
-    background: rgba(255, 255, 255, 0.05);
-  }
-`;
-
-const Rank = styled.div`
-  width: 24px;
-  height: 24px;
-  background: #3b82f6;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.75rem;
-  font-weight: 700;
-`;
-
-const ReporterInfo = styled.div`
-  flex: 1;
-  h4 {
-    font-size: 0.875rem;
-    font-weight: 600;
-    margin-bottom: 2px;
-  }
-  span {
-    font-size: 0.7rem;
-    color: #ffffff;
-  }
-`;
-
-const CountBadge = styled.div`
-  padding: 0.25rem 0.6rem;
-  background: rgba(52, 211, 153, 0.1);
-  color: #34d399;
-  border-radius: 0.5rem;
-  font-size: 0.75rem;
-  font-weight: 700;
-`;
-
-const EmptyText = styled.p`
-  text-align: center;
-  color: #64748b;
-  padding: 2rem;
-  font-size: 0.875rem;
-`;
-
 const SectionTitle = styled.h2`
   font-size: 1.125rem;
   font-weight: 600;
   margin-bottom: 1.5rem;
-  color: #f8fafc;
+  color: #ffffff;
 `;
 
 const TypeGrid = styled.div`
@@ -519,14 +434,15 @@ const TypeGrid = styled.div`
 `;
 
 const TypeCard = styled.div`
-  background: rgba(15, 23, 42, 0.4);
+  background: var(--card-bg);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
   border-radius: 1.25rem;
   padding: 1.5rem;
   display: flex;
   align-items: center;
   gap: 1.25rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
 `;
 
 const TypeIcon = styled.div<{ color: string }>`
@@ -546,6 +462,7 @@ const TypeInfo = styled.div`
     font-size: 1rem;
     font-weight: 600;
     margin-bottom: 4px;
+    color: #ffffff;
   }
   p {
     font-size: 0.75rem;
@@ -556,5 +473,5 @@ const TypeInfo = styled.div`
 const TypeValue = styled.div`
   font-size: 1.5rem;
   font-weight: 700;
-  color: #f8fafc;
+  color: #ffffff;
 `;

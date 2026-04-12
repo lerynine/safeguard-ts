@@ -19,7 +19,8 @@ import {
   writeBatch,
   increment,
   setDoc,
-  getDoc
+  getDoc,
+  getDocs
 } from "firebase/firestore";
 import { auth, db } from "./firebase";
 import { UserRole, ReportStatus } from "./constants/enums";
@@ -154,14 +155,18 @@ export default function App() {
   }, [user]);
 
   const incrementUserPoints = async (userId: string, amount: number) => {
-    const userRef = doc(db, "users", userId);
     try {
-      const userSnap = await getDoc(userRef);
-      if (userSnap.exists()) {
-        await updateDoc(userRef, { points: increment(amount) });
+      // Find the user document where the field 'uid' matches userId
+      const q = query(collection(db, "users"), where("uid", "==", userId));
+      const snapshot = await getDocs(q);
+      
+      if (!snapshot.empty) {
+        const userDoc = snapshot.docs[0];
+        await updateDoc(doc(db, "users", userDoc.id), { 
+          points: increment(amount) 
+        });
       } else {
-        // If user document doesn't exist yet, create it
-        await setDoc(userRef, { points: amount }, { merge: true });
+        console.warn(`⚠️ User document with uid ${userId} not found. Cannot award points.`);
       }
     } catch (error) {
       console.error("Error incrementing points:", error);

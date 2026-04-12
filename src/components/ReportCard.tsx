@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled, { css } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -8,12 +8,24 @@ import {
   AlertTriangle,
   ChevronRight,
   ShieldAlert,
+  MapPin,
 } from 'lucide-react';
 import { ReportStatus } from '../constants/enums';
-import { MapContainer, TileLayer, Marker } from "react-leaflet";
-import { MapPin } from "lucide-react";
-import { useMap } from "react-leaflet";
-import { useEffect } from "react";
+import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet";
+import L from "leaflet";
+
+// Fix for default marker icon in Leaflet
+import markerIcon from 'leaflet/dist/images/marker-icon.png';
+import markerShadow from 'leaflet/dist/images/marker-shadow.png';
+
+const DefaultIcon = L.icon({
+  iconUrl: markerIcon,
+  shadowUrl: markerShadow,
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+});
+
+L.Marker.prototype.options.icon = DefaultIcon;
 
 const STATUS_CONFIG = {
   [ReportStatus.OPEN]: {
@@ -50,11 +62,12 @@ function RecenterMap({ lat, lng }: { lat: number; lng: number }) {
   const map = useMap();
 
   useEffect(() => {
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       map.invalidateSize();
       map.setView([lat, lng], 16);
     }, 300); // tunggu animasi height selesai
-  }, []);
+    return () => clearTimeout(timer);
+  }, [lat, lng, map]);
 
   return null;
 }
@@ -63,12 +76,14 @@ export default function ReportCard({
   report,
   isBPO,
   onUpdate,
-  onImageClick
+  onImageClick,
+  user // Added back to maintain compatibility with Dashboard.tsx
 }: {
   report: any,
   isBPO: boolean,
   onUpdate: (data: any) => void,
   onImageClick?: (url: string) => void,
+  user?: any,
   key?: React.Key
 }) {
   const [showActions, setShowActions] = useState(false);
@@ -99,6 +114,7 @@ export default function ReportCard({
 
     fetchAddress();
   }, [report.latitude, report.longitude]);
+
   return (
     <Card
       className="glass-card"
@@ -114,6 +130,7 @@ export default function ReportCard({
             as={motion.img}
             whileHover={{ scale: 1.1 }}
             transition={{ duration: 0.5 }}
+            referrerPolicy="no-referrer"
           />
         ) : (
           <NoImage>
@@ -138,11 +155,11 @@ export default function ReportCard({
         {report.latitude && report.longitude && (
           <LocationMeta>
             <MapPin size={14} />
-            <div style={{ display: "flex", flexDirection: "column" }}>
-              <span style={{ fontSize: 11 }}>
+            <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
+              <span style={{ fontSize: 11, color: '#f8fafc', fontWeight: 600 }}>
                 {address ? address : "Mendeteksi alamat..."}
               </span>
-              <small style={{ opacity: 0.5 }}>
+              <small style={{ opacity: 0.5, fontSize: '9px' }}>
                 {report.latitude.toFixed(5)}, {report.longitude.toFixed(5)}
               </small>
             </div>
@@ -155,7 +172,6 @@ export default function ReportCard({
               {showMap ? "Tutup Peta" : "Lihat Peta"}
             </ToggleMapButton>
           </LocationMeta>
-
         )}
 
         <AnimatePresence>
@@ -167,10 +183,10 @@ export default function ReportCard({
               exit={{ opacity: 0, height: 0 }}
             >
               <MapContainer
-  center={[report.latitude, report.longitude]}
-  zoom={16}
-  style={{ height: "100%", width: "100%" }}
->
+                center={[report.latitude, report.longitude]}
+                zoom={16}
+                style={{ height: "100%", width: "100%" }}
+              >
                 <TileLayer
                   attribution="&copy; OpenStreetMap contributors"
                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -186,6 +202,7 @@ export default function ReportCard({
             </MapWrapper>
           )}
         </AnimatePresence>
+        
         <Description>{report.description}</Description>
 
         <SuggestionBox>
@@ -265,6 +282,7 @@ const Card = styled.div`
   flex-direction: column;
   transition: border 0.3s;
   border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(30, 41, 59, 0.4);
 
   &:hover {
     border-color: rgba(59, 130, 246, 0.2);
@@ -368,7 +386,7 @@ const SuggestionBox = styled.div`
 
   p {
     font-size: 12px;
-    color: #c51c1c;
+    color: #f87171;
     font-weight: 600;
     line-height: 1.4;
   }

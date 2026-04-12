@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import styled, { css } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapContainer, TileLayer, Marker } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from "react-leaflet";
 import L from "leaflet";
 import {
   X,
@@ -14,7 +14,48 @@ import {
   Image as ImageIcon,
   FolderOpen,
   Sparkles,
+  MapPin,
 } from 'lucide-react';
+
+// Fix for default marker icon in Leaflet
+import markerIcon from 'leaflet/dist/images/marker-icon.png';
+import markerShadow from 'leaflet/dist/images/marker-shadow.png';
+
+const DefaultIcon = L.icon({
+  iconUrl: markerIcon,
+  shadowUrl: markerShadow,
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+});
+
+L.Marker.prototype.options.icon = DefaultIcon;
+
+function LocationMarker({ position, setPosition }: { position: [number, number] | null, setPosition: (pos: [number, number]) => void }) {
+  useMapEvents({
+    click(e) {
+      setPosition([e.latlng.lat, e.latlng.lng]);
+    },
+  });
+
+  return position === null ? null : (
+    <Marker position={position} />
+  );
+}
+
+function MapController({ center }: { center: [number, number] }) {
+  const map = useMap();
+  
+  useEffect(() => {
+    // Invalidate size after a short delay to ensure the modal animation is finished
+    const timer = setTimeout(() => {
+      map.invalidateSize();
+      map.setView(center, 16);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [map, center]);
+
+  return null;
+}
 
 export default function ReportForm({ onClose, onSubmit }: { onClose: () => void, onSubmit: (data: any) => void }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -78,6 +119,8 @@ export default function ReportForm({ onClose, onSubmit }: { onClose: () => void,
   useEffect(() => {
     if (!navigator.geolocation) {
       console.log("Geolocation not supported");
+      // Default to Tanjung Priok
+      setFormData(prev => ({ ...prev, latitude: -6.1033, longitude: 106.8792 }));
       return;
     }
 
@@ -91,6 +134,8 @@ export default function ReportForm({ onClose, onSubmit }: { onClose: () => void,
       },
       (error) => {
         console.error("Error getting location:", error);
+        // Default to Tanjung Priok if fails
+        setFormData(prev => ({ ...prev, latitude: -6.1033, longitude: 106.8792 }));
       },
       { enableHighAccuracy: true }
     );
@@ -258,29 +303,38 @@ export default function ReportForm({ onClose, onSubmit }: { onClose: () => void,
             />
           </Section>
 
-          {formData.latitude && formData.longitude && (
-            <Section>
-              <Label>
-                📍 Lokasi Kejadian
-              </Label>
+          <Section as={motion.div} variants={itemVariants}>
+            <Label>
+              <MapPin size={14} /> Lokasi Kejadian (Klik peta untuk ubah)
+            </Label>
 
-              <div style={{ height: "200px", borderRadius: 12, overflow: "hidden" }}>
-                <MapContainer
-                  center={[formData.latitude, formData.longitude]}
-                  zoom={16}
-                  style={{ height: "100%", width: "100%" }}
-                >
-                  <TileLayer
-                    attribution='&copy; OpenStreetMap contributors'
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                  />
-                  <Marker
-                    position={[formData.latitude, formData.longitude]}
-                  />
-                </MapContainer>
+            <div style={{ height: "200px", borderRadius: '1.5rem', overflow: "hidden", border: '1px solid rgba(255,255,255,0.1)', position: 'relative', zIndex: 1 }}>
+              <MapContainer
+                center={[formData.latitude || -6.1033, formData.longitude || 106.8792]}
+                zoom={16}
+                style={{ height: "100%", width: "100%" }}
+              >
+                <TileLayer
+                  attribution='&copy; OpenStreetMap contributors'
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                />
+                {formData.latitude && formData.longitude && (
+                  <>
+                    <LocationMarker 
+                      position={[formData.latitude, formData.longitude]} 
+                      setPosition={(pos) => setFormData(p => ({ ...p, latitude: pos[0], longitude: pos[1] }))} 
+                    />
+                    <MapController center={[formData.latitude, formData.longitude]} />
+                  </>
+                )}
+              </MapContainer>
+            </div>
+            {formData.latitude && formData.longitude && (
+              <div style={{ fontSize: '10px', color: '#94a3b8', textAlign: 'right', fontWeight: 600 }}>
+                {formData.latitude.toFixed(6)}, {formData.longitude.toFixed(6)}
               </div>
-            </Section>
-          )}
+            )}
+          </Section>
 
           <SubmitButton
             type="submit"
