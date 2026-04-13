@@ -44,7 +44,7 @@ export default function LeaderboardPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <h1>Pahlawan K3 Pelindo</h1>
+          <h1>Pahlawan K3 SPMT Janirah</h1>
           <p>Apresiasi bagi mereka yang paling peduli dengan keselamatan di lingkungan pelabuhan.</p>
         </motion.div>
       </HeroSection>
@@ -161,22 +161,6 @@ export default function LeaderboardPage() {
         </EmptyState>
       )}
 
-      <StatsGrid>
-        <StatItem>
-          <TrendingUp size={20} color="#10b981" />
-          <div>
-            <strong>+15%</strong>
-            <span>Kenaikan Pelaporan</span>
-          </div>
-        </StatItem>
-        <StatItem>
-          <Award size={20} color="#3b82f6" />
-          <div>
-            <strong>24</strong>
-            <span>Badge Terbit</span>
-          </div>
-        </StatItem>
-      </StatsGrid>
     </Container>
   );
 }
