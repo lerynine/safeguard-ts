@@ -9,6 +9,7 @@ import {
   ChevronRight,
   ShieldAlert,
   MapPin,
+  Share2,
 } from 'lucide-react';
 import { ReportStatus } from '../constants/enums';
 import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet";
@@ -115,6 +116,27 @@ export default function ReportCard({
     fetchAddress();
   }, [report.latitude, report.longitude]);
 
+  const handleShare = async () => {
+    const googleMapsUrl = `https://www.google.com/maps?q=${report.latitude},${report.longitude}`;
+    const shareText = `Laporan Temuan: ${report.description}\nLokasi: ${address || 'Koordinat ' + report.latitude + ',' + report.longitude}\nLihat di Peta: ${googleMapsUrl}`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Laporan Temuan Safeguard',
+          text: shareText,
+          url: googleMapsUrl,
+        });
+      } catch (err) {
+        console.log('Share failed:', err);
+      }
+    } else {
+      // Fallback to WhatsApp
+      const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
+      window.open(whatsappUrl, '_blank');
+    }
+  };
+
   return (
     <Card
       className="glass-card"
@@ -171,6 +193,15 @@ export default function ReportCard({
             >
               {showMap ? "Tutup Peta" : "Lihat Peta"}
             </ToggleMapButton>
+
+            <ShareButton
+              onClick={handleShare}
+              as={motion.button}
+              whileTap={{ scale: 0.95 }}
+              title="Bagikan Lokasi"
+            >
+              <Share2 size={14} />
+            </ShareButton>
           </LocationMeta>
         )}
 
@@ -531,6 +562,25 @@ const ToggleMapButton = styled.button`
   padding: 4px 8px;
   border-radius: 6px;
   cursor: pointer;
+`;
+
+const ShareButton = styled.button`
+  margin-left: 8px;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #34d399;
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+
+  &:hover {
+    background: rgba(16, 185, 129, 0.2);
+    transform: scale(1.05);
+  }
 `;
 
 const MapWrapper = styled.div`

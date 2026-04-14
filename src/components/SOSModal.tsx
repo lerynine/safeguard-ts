@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AlertOctagon, X, PhoneCall, MapPin, ShieldAlert } from 'lucide-react';
+import { AlertOctagon, X, PhoneCall, MapPin, ShieldAlert, Share2 } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { db, auth } from '../firebase';
@@ -93,6 +93,26 @@ export default function SOSModal({ isOpen, onClose, user }: SOSModalProps) {
     setIsSent(false);
   };
 
+  const handleShare = async () => {
+    const googleMapsUrl = `https://www.google.com/maps?q=${location.lat},${location.lng}`;
+    const shareText = `DARURAT SOS! Saya butuh bantuan segera.\nLokasi Saya: ${googleMapsUrl}`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'DARURAT SOS Safeguard',
+          text: shareText,
+          url: googleMapsUrl,
+        });
+      } catch (err) {
+        console.log('Share failed:', err);
+      }
+    } else {
+      const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
+      window.open(whatsappUrl, '_blank');
+    }
+  };
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -155,6 +175,11 @@ export default function SOSModal({ isOpen, onClose, user }: SOSModalProps) {
                   <InfoItem><ShieldAlert size={16} /> Keamanan: Ext. 911</InfoItem>
                   <InfoItem><MapPin size={16} /> Lokasi Anda Terdeteksi</InfoItem>
                 </InfoList>
+                <ButtonGroup style={{ marginBottom: '1rem' }}>
+                  <ShareSOSBtn onClick={handleShare}>
+                    <Share2 size={18} /> BAGIKAN LOKASI
+                  </ShareSOSBtn>
+                </ButtonGroup>
                 <CloseBtn onClick={handleCancel}>TUTUP</CloseBtn>
               </>
             )}
@@ -308,4 +333,24 @@ const CloseBtn = styled.button`
   cursor: pointer;
   transition: all 0.2s;
   &:hover { background: #2563eb; }
+`;
+
+const ShareSOSBtn = styled.button`
+  flex: 1;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #10b981;
+  padding: 1rem;
+  border-radius: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  transition: all 0.2s;
+  &:hover {
+    background: rgba(16, 185, 129, 0.2);
+    transform: translateY(-2px);
+  }
 `;

@@ -80,14 +80,28 @@ export default function AnalyticsPage({ reports }: { reports: any[] }) {
 
     // 6. Day of Week Distribution
     const days = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
-    const dayMap: Record<string, number> = { "Senin": 0, "Selasa": 0, "Rabu": 0, "Kamis": 0, "Jumat": 0, "Sabtu": 0, "Minggu": 0 };
+    // Initialize all days to ensure they appear in the chart even with 0 reports
+    const dayMap: Record<string, number> = { 
+      "Senin": 0, 
+      "Selasa": 0, 
+      "Rabu": 0, 
+      "Kamis": 0, 
+      "Jumat": 0, 
+      "Sabtu": 0, 
+      "Minggu": 0 
+    };
+    
     reports.forEach(r => {
       if (r.date) {
-        const dayName = days[new Date(r.date).getDay()];
+        const dateObj = new Date(r.date);
+        const dayName = days[dateObj.getDay()];
         dayMap[dayName]++;
       }
     });
-    const dayData = Object.entries(dayMap).map(([name, value]) => ({ name, value }));
+
+    // Order the data to start from Monday to Sunday
+    const orderedDays = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"];
+    const dayData = orderedDays.map(name => ({ name, value: dayMap[name] }));
 
     // 7. Finding Type Ratio
     const typeData = [
@@ -145,6 +159,22 @@ export default function AnalyticsPage({ reports }: { reports: any[] }) {
           </KPIInfo>
         </KPICard>
       </KPIRow>
+
+      <SectionTitle>Rasio Tipe Temuan</SectionTitle>
+      <TypeGrid style={{ marginBottom: '2rem' }}>
+        {stats.typeData.map((type, i) => (
+          <TypeCard key={i} as={motion.div} whileHover={{ y: -5 }} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
+            <TypeIcon color={type.name === "Unsafe Action" ? "#3b82f6" : "#f43f5e"}>
+              {type.name === "Unsafe Action" ? <Users size={24} /> : <Filter size={24} />}
+            </TypeIcon>
+            <TypeInfo>
+              <h3>{type.name}</h3>
+              <p>{Math.round((type.value / (stats.total || 1)) * 100)}% dari total temuan</p>
+            </TypeInfo>
+            <TypeValue>{type.value}</TypeValue>
+          </TypeCard>
+        ))}
+      </TypeGrid>
 
       <BentoGrid>
         {/* Main Trend Chart - Spans 2 columns */}
@@ -204,30 +234,8 @@ export default function AnalyticsPage({ reports }: { reports: any[] }) {
           </ChartContainer>
         </BentoItem>
 
-        {/* Division Bar Chart */}
-        <BentoItem className="span-2" as={motion.div} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-          <CardHeader>
-            <BarChart3 size={18} color="#818cf8" />
-            <h3>Laporan per Divisi</h3>
-          </CardHeader>
-          <ChartContainer>
-            <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={stats.divisionData} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
-                <XAxis type="number" stroke="#ffffff" fontSize={10} tickLine={false} axisLine={false} />
-                <YAxis dataKey="name" type="category" stroke="#ffffff" fontSize={10} width={100} tickLine={false} axisLine={false} />
-                <Tooltip 
-                  cursor={{ fill: 'rgba(0,0,0,0.02)' }}
-                  contentStyle={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "8px", boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)" }}
-                />
-                <Bar dataKey="value" fill="#818cf8" radius={[0, 4, 4, 0]} barSize={20} />
-              </BarChart>
-            </ResponsiveContainer>
-          </ChartContainer>
-        </BentoItem>
-
         {/* Day of Week Chart */}
-        <BentoItem as={motion.div} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+        <BentoItem className="span-2" as={motion.div} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
           <CardHeader>
             <Calendar size={18} color="#f43f5e" />
             <h3>Aktivitas per Hari</h3>
@@ -236,34 +244,19 @@ export default function AnalyticsPage({ reports }: { reports: any[] }) {
             <ResponsiveContainer width="100%" height={250}>
               <BarChart data={stats.dayData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                <XAxis dataKey="name" stroke="#ffffff" fontSize={10} tickLine={false} axisLine={false} />
+                <XAxis dataKey="name" stroke="#ffffff" fontSize={10} tickLine={false} axisLine={false} interval={0} />
                 <YAxis stroke="#ffffff" fontSize={10} tickLine={false} axisLine={false} />
                 <Tooltip 
                   cursor={{ fill: 'rgba(0,0,0,0.02)' }}
                   contentStyle={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "8px", boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)" }}
+                  itemStyle={{ color: "#0f172a" }}
                 />
-                <Bar dataKey="value" fill="#f43f5e" radius={[4, 4, 0, 0]} barSize={25} />
+                <Bar dataKey="value" fill="#f43f5e" radius={[4, 4, 0, 0]} barSize={40} />
               </BarChart>
             </ResponsiveContainer>
           </ChartContainer>
         </BentoItem>
       </BentoGrid>
-
-      <SectionTitle>Rasio Tipe Temuan</SectionTitle>
-      <TypeGrid>
-        {stats.typeData.map((type, i) => (
-          <TypeCard key={i} as={motion.div} whileHover={{ y: -5 }}>
-            <TypeIcon color={type.name === "Unsafe Action" ? "#3b82f6" : "#f43f5e"}>
-              {type.name === "Unsafe Action" ? <Users size={24} /> : <Filter size={24} />}
-            </TypeIcon>
-            <TypeInfo>
-              <h3>{type.name}</h3>
-              <p>{Math.round((type.value / (stats.total || 1)) * 100)}% dari total temuan</p>
-            </TypeInfo>
-            <TypeValue>{type.value}</TypeValue>
-          </TypeCard>
-        ))}
-      </TypeGrid>
     </Container>
   );
 }

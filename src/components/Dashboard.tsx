@@ -196,10 +196,6 @@ export default function Dashboard({
         </HeaderLeft>
 
         <HeaderRight>
-          <SOSBtn onClick={() => setIsSOSOpen(true)}>
-            <AlertOctagon size={18} />
-            <span>SOS</span>
-          </SOSBtn>
 
           <IconButton 
             onClick={() => navigate("/leaderboard")}
