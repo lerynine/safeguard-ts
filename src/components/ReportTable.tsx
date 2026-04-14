@@ -96,8 +96,8 @@ export default function ReportTable({
       setSelectedReportId(null);
     } else {
       setSelectedReportId(report.id);
-      setEstimationDate(report.estimationDate || '');
-      setPlannedAction(report.plannedAction || '');
+      setEstimationDate(report?.estimationDate || '');
+      setPlannedAction(report?.plannedAction || '');
     }
   };
 
@@ -485,9 +485,10 @@ export default function ReportTable({
 const TableContainer = styled.div`
   border-radius: 1.5rem;
   overflow: hidden;
-  background: rgba(15, 23, 42, 0.4);
+  background: var(--card-bg);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
 `;
 
 const ScrollWrapper = styled.div`
@@ -504,17 +505,17 @@ const StyledTable = styled.table`
     font-size: 10px;
     font-weight: 800;
     letter-spacing: 0.2em;
-    color: #94a3b8;
+    color: var(--text-muted);
     text-transform: uppercase;
     background: rgba(255, 255, 255, 0.02);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid var(--border);
   }
 `;
 
 const TableRow = styled.tr<{ active: boolean }>`
   border-bottom: 1px solid rgba(255, 255, 255, 0.03);
   transition: all 0.3s;
-  background: ${({ active }) => active ? 'rgba(59, 130, 246, 0.08)' : 'transparent'};
+  background: ${({ active }) => active ? 'var(--accent)' : 'transparent'};
 
   &:hover {
     background: rgba(255, 255, 255, 0.03);
@@ -533,7 +534,7 @@ const Thumb = styled.img`
   height: 40px;
   border-radius: 8px;
   object-fit: cover;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid #e2e8f0;
 `;
 
 const NoThumb = styled.div`
@@ -550,7 +551,7 @@ const NoThumb = styled.div`
 const Description = styled.div`
   font-size: 13px;
   font-weight: 600;
-  color: white;
+  color: var(--text-primary);
   margin-bottom: 2px;
 `;
 
@@ -616,9 +617,9 @@ const ActionGroup = styled.div`
 const ActionButton = styled.button<{ active?: boolean }>`
   padding: 10px;
   border-radius: 12px;
-  background: ${({ active }) => active ? 'rgba(59, 130, 246, 0.2)' : 'rgba(255, 255, 255, 0.03)'};
-  color: ${({ active }) => active ? '#60a5fa' : '#94a3b8'};
-  border: 1px solid ${({ active }) => active ? 'rgba(59, 130, 246, 0.3)' : 'rgba(255, 255, 255, 0.05)'};
+  background: ${({ active }) => active ? 'var(--accent)' : 'rgba(255, 255, 255, 0.03)'};
+  color: ${({ active }) => active ? 'var(--primary)' : 'var(--text-secondary)'};
+  border: 1px solid ${({ active }) => active ? 'var(--primary)' : 'var(--border)'};
   cursor: pointer;
   transition: all 0.2s;
   display: flex;
@@ -627,7 +628,7 @@ const ActionButton = styled.button<{ active?: boolean }>`
 
   &:hover {
     background: rgba(255, 255, 255, 0.08);
-    color: white;
+    color: var(--text-primary);
     transform: translateY(-1px);
   }
 `;
@@ -653,7 +654,7 @@ const EditPanel = styled.div`
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  border-top: 1px solid #e2e8f0;
   position: relative;
 
   &::before {
@@ -663,7 +664,7 @@ const EditPanel = styled.div`
     left: 0;
     width: 3px;
     height: 100%;
-    background: #3b82f6;
+    background: #2563eb;
   }
 `;
 
@@ -682,17 +683,18 @@ const InputGroup = styled.div`
 
   input, textarea {
     background: rgba(15, 23, 42, 0.6);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--border);
     border-radius: 12px;
     padding: 12px 16px;
-    color: white;
+    color: var(--text-primary);
     font-size: 14px;
     outline: none;
     transition: all 0.2s;
 
     &:focus {
-      border-color: #3b82f6;
+      border-color: var(--primary);
       background: rgba(15, 23, 42, 0.8);
+      box-shadow: 0 0 0 4px var(--accent);
     }
   }
 `;
@@ -728,18 +730,18 @@ const SubmitBtn = styled.button`
 const CancelBtn = styled.button`
   padding: 10px 20px;
   background: transparent;
-  color: #94a3b8;
+  color: var(--text-secondary);
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--border);
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s;
 
   &:hover {
     background: rgba(255, 255, 255, 0.05);
-    color: white;
+    color: var(--text-primary);
   }
 `;
 
@@ -751,11 +753,11 @@ const UserResultItem = styled.div`
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s;
-  color: #cbd5e1;
+  color: var(--text-secondary);
 
   &:hover {
-    background: rgba(59, 130, 246, 0.1);
-    color: white;
+    background: var(--accent);
+    color: var(--primary);
   }
 `;
 

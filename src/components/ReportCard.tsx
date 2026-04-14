@@ -87,10 +87,12 @@ export default function ReportCard({
   user?: any,
   key?: React.Key
 }) {
+  if (!report) return null;
+
   const [showActions, setShowActions] = useState(false);
   const [bpoData, setBpoData] = useState({
-    estimationDate: report.estimationDate || '',
-    plannedAction: report.plannedAction || '',
+    estimationDate: report?.estimationDate || '',
+    plannedAction: report?.plannedAction || '',
     handlingReport: '',
   });
   const [showMap, setShowMap] = useState(false);
