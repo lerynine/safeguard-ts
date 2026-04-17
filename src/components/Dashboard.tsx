@@ -25,6 +25,7 @@ import { useNavigate } from "react-router-dom";
 import { ReportStatus, UserRole } from "../constants/enums";
 import ReportForm from "./ReportForm";
 import ReportCard from "./ReportCard";
+import ReportTable from "./ReportTable";
 import SOSModal from "./SOSModal";
 
 const COLOR_MAP = {
@@ -55,6 +56,7 @@ export default function Dashboard({
   notifications,
   onAddReport,
   onUpdateReport,
+  onDeleteReport,
   onMarkNotificationsAsRead,
   onMarkNotificationAsRead,
   onLogout,
@@ -63,6 +65,7 @@ export default function Dashboard({
   reports: any[];
   notifications: any[];
   onAddReport: (data: any) => void;
+  onDeleteReport: (id: string) => void;
   onUpdateReport: (id: string, updates: any) => void;
   onMarkNotificationsAsRead: () => void;
   onMarkNotificationAsRead: (id: string) => void;
@@ -75,10 +78,18 @@ export default function Dashboard({
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [greeting, setGreeting] = useState("");
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
   const navigate = useNavigate();
 
+  // If user is BPO, default to table view
   useEffect(() => {
-    if (selectedImage || isReportModalOpen) {
+    if (user?.role === UserRole.BPO) {
+      setViewMode("table");
+    }
+  }, [user?.role]);
+
+  useEffect(() => {
+    if (selectedImage || isReportModalOpen || isSOSOpen) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = 'unset';
@@ -86,7 +97,7 @@ export default function Dashboard({
     return () => {
       document.body.style.overflow = 'unset';
     };
-  }, [selectedImage, isReportModalOpen]);
+  }, [selectedImage, isReportModalOpen, isSOSOpen]);
 
   useEffect(() => {
     const hour = new Date().getHours();
@@ -109,6 +120,7 @@ export default function Dashboard({
       );
     }
     return result.sort((a, b) => {
+      if (!a || !b) return 0;
       // Primary sort by date string (YYYY-MM-DD)
       const dateA = a.date || "";
       const dateB = b.date || "";
@@ -196,6 +208,15 @@ export default function Dashboard({
         </HeaderLeft>
 
         <HeaderRight>
+          <SOSBtn 
+            onClick={() => setIsSOSOpen(true)}
+            as={motion.button}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <AlertOctagon size={16} />
+            <span>SOS</span>
+          </SOSBtn>
 
           <IconButton 
             onClick={() => navigate("/leaderboard")}
@@ -378,6 +399,21 @@ export default function Dashboard({
 
           <FilterGroup>
             <FilterButton 
+              active={viewMode === 'grid'} 
+              onClick={() => setViewMode('grid')}
+              title="Grid View"
+            >
+              <BarChart3 size={14} />
+            </FilterButton>
+            <FilterButton 
+              active={viewMode === 'table'} 
+              onClick={() => setViewMode('table')}
+              title="Table View"
+            >
+              <FileText size={14} />
+            </FilterButton>
+            <div style={{ width: '1px', background: 'rgba(255,255,255,0.1)', margin: '0 0.5rem' }} />
+            <FilterButton 
               active={sortOrder === 'newest'} 
               onClick={() => setSortOrder('newest')}
             >
@@ -394,40 +430,51 @@ export default function Dashboard({
           </FilterGroup>
         </SearchFilterRow>
 
-        <Grid as={motion.div} variants={containerVariants}>
-          <AnimatePresence mode="popLayout">
-            {filteredReports.length ? (
-              filteredReports.map((r) => (
-                <motion.div
-                  key={r.id}
-                  layout
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  variants={itemVariants}
+        {viewMode === "table" ? (
+          <ReportTable
+            reports={filteredReports}
+            user={user}
+            onUpdate={onUpdateReport}
+            onDelete={onDeleteReport}
+            onImageClick={(url: string) => setSelectedImage(url)}
+          />
+        ) : (
+          <Grid as={motion.div} variants={containerVariants}>
+            <AnimatePresence mode="popLayout">
+              {filteredReports.length ? (
+                filteredReports.filter(r => !!r).map((r) => (
+                  <motion.div
+                    key={r.id}
+                    layout
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    variants={itemVariants}
+                  >
+                    <ReportCard
+                      report={r}
+                      user={user}
+                      isBPO={user.role === UserRole.BPO}
+                      onUpdate={(u: any) => onUpdateReport(r.id, u)}
+                      onDelete={onDeleteReport}
+                      onImageClick={(url: string) => setSelectedImage(url)}
+                    />
+                  </motion.div>
+                ))
+              ) : (
+                <EmptyState 
+                  className="glass-card"
+                  as={motion.div}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
                 >
-                  <ReportCard
-                    report={r}
-                    user={user}
-                    isBPO={user.role === UserRole.BPO}
-                    onUpdate={(u: any) => onUpdateReport(r.id, u)}
-                    onImageClick={(url: string) => setSelectedImage(url)}
-                  />
-                </motion.div>
-              ))
-            ) : (
-              <EmptyState 
-                className="glass-card"
-                as={motion.div}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-              >
-                <ShieldAlert size={48} />
-                <p>Tidak ada laporan ditemukan.</p>
-              </EmptyState>
-            )}
-          </AnimatePresence>
-        </Grid>
+                  <ShieldAlert size={48} />
+                  <p>Tidak ada laporan ditemukan.</p>
+                </EmptyState>
+              )}
+            </AnimatePresence>
+          </Grid>
+        )}
       </Main>
 
       <AnimatePresence>

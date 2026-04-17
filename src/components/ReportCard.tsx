@@ -10,6 +10,7 @@ import {
   ShieldAlert,
   MapPin,
   Share2,
+  Trash2,
 } from 'lucide-react';
 import { ReportStatus } from '../constants/enums';
 import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet";
@@ -77,18 +78,18 @@ export default function ReportCard({
   report,
   isBPO,
   onUpdate,
+  onDelete,
   onImageClick,
   user // Added back to maintain compatibility with Dashboard.tsx
 }: {
   report: any,
   isBPO: boolean,
   onUpdate: (data: any) => void,
+  onDelete?: (id: string) => void,
   onImageClick?: (url: string) => void,
   user?: any,
   key?: React.Key
 }) {
-  if (!report) return null;
-
   const [showActions, setShowActions] = useState(false);
   const [bpoData, setBpoData] = useState({
     estimationDate: report?.estimationDate || '',
@@ -96,12 +97,10 @@ export default function ReportCard({
     handlingReport: '',
   });
   const [showMap, setShowMap] = useState(false);
-  const config = (STATUS_CONFIG as any)[report.status] || STATUS_CONFIG.default;
-  const StatusIcon = config.icon;
   const [address, setAddress] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!report.latitude || !report.longitude) return;
+    if (!report?.latitude || !report?.longitude) return;
 
     const fetchAddress = async () => {
       try {
@@ -116,7 +115,12 @@ export default function ReportCard({
     };
 
     fetchAddress();
-  }, [report.latitude, report.longitude]);
+  }, [report?.latitude, report?.longitude]);
+
+  if (!report) return null;
+
+  const config = (STATUS_CONFIG as any)[report.status] || STATUS_CONFIG.default;
+  const StatusIcon = config.icon;
 
   const handleShare = async () => {
     const googleMapsUrl = `https://www.google.com/maps?q=${report.latitude},${report.longitude}`;
@@ -136,6 +140,22 @@ export default function ReportCard({
       // Fallback to WhatsApp
       const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
       window.open(whatsappUrl, '_blank');
+    }
+  };
+
+  const canDelete = isBPO || report.reportedBy?.uid === user?.uid;
+
+  const handleDeleteClick = () => {
+    console.log("🗑️ Delete button clicked for report:", report.id);
+    console.log("👤 Current User UID:", user?.uid);
+    console.log("📄 Report Creator UID:", report.reportedBy?.uid);
+    console.log("👮 Is BPO:", isBPO);
+    console.log("✅ Can Delete:", canDelete);
+    
+    if (onDelete) {
+      onDelete(report.id);
+    } else {
+      console.warn("⚠️ onDelete prop is missing in ReportCard");
     }
   };
 
@@ -244,23 +264,37 @@ export default function ReportCard({
         </SuggestionBox>
 
         <Footer>
-          {isBPO && report.status !== ReportStatus.CLOSED ? (
-            <ActionToggle
-              onClick={() => setShowActions(!showActions)}
-              as={motion.button}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              Edit <motion.div animate={{ rotate: showActions ? 90 : 0 }}><ChevronRight size={12} /></motion.div>
-            </ActionToggle>
-          ) : (
-            report.status === ReportStatus.CLOSED && (
-              <Resolved as={motion.div} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                <CheckCircle2 size={12} />
-                <span>Selesai {report.closedAt}</span>
-              </Resolved>
-            )
-          )}
+          <div style={{ display: 'flex', gap: '8px', width: '100%', justifyContent: 'flex-end' }}>
+            {canDelete && (
+              <DeleteButton
+                onClick={handleDeleteClick}
+                as={motion.button}
+                whileHover={{ scale: 1.05, backgroundColor: 'rgba(239, 68, 68, 0.2)' }}
+                whileTap={{ scale: 0.95 }}
+                title="Hapus Laporan"
+              >
+                <Trash2 size={14} />
+              </DeleteButton>
+            )}
+
+            {isBPO && report.status !== ReportStatus.CLOSED ? (
+              <ActionToggle
+                onClick={() => setShowActions(!showActions)}
+                as={motion.button}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                Edit <motion.div animate={{ rotate: showActions ? 90 : 0 }}><ChevronRight size={12} /></motion.div>
+              </ActionToggle>
+            ) : (
+              report.status === ReportStatus.CLOSED && (
+                <Resolved as={motion.div} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                  <CheckCircle2 size={12} />
+                  <span>Selesai {report.closedAt}</span>
+                </Resolved>
+              )
+            )}
+          </div>
         </Footer>
 
         <AnimatePresence>
@@ -468,6 +502,24 @@ const Resolved = styled.div`
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.15em;
+`;
+
+const DeleteButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(239, 68, 68, 0.1);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  padding: 8px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+  }
 `;
 
 const ActionPanel = styled.div`

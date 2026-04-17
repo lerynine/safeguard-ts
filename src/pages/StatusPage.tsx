@@ -46,6 +46,7 @@ export default function StatusPage({
   notifications,
   onAddReport,
   onUpdateReport,
+  onDeleteReport,
   onMarkNotificationsAsRead,
   onMarkNotificationAsRead,
   onLogout,
@@ -57,6 +58,7 @@ export default function StatusPage({
   notifications: any[];
   onAddReport: (data: any) => void;
   onUpdateReport: (id: string, updates: any) => void;
+  onDeleteReport: (id: string) => void;
   onMarkNotificationsAsRead: () => void;
   onMarkNotificationAsRead: (id: string) => void;
   onLogout: () => void;
@@ -328,6 +330,7 @@ export default function StatusPage({
             reports={filteredReports} 
             user={user} 
             onUpdate={onUpdateReport} 
+            onDelete={onDeleteReport}
             hideActions={status === ReportStatus.CLOSED}
             onImageClick={(url: string) => setSelectedImage(url)}
           />

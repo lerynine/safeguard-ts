@@ -19,6 +19,7 @@ import {
   writeBatch,
   increment,
   setDoc,
+  deleteDoc,
   getDoc,
   getDocs
 } from "firebase/firestore";
@@ -31,11 +32,16 @@ import StatusPage from "./pages/StatusPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
 import LeaderboardPage from "./pages/LeaderboardPage";
 import GlobalStyle from "./components/GlobalStyle";
+import ConfirmModal from "./components/ConfirmModal";
 
 export default function App() {
   const [user, setUser] = useState<any>(null);
   const [reports, setReports] = useState<any[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean, reportId: string | null }>({
+    isOpen: false,
+    reportId: null
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -224,7 +230,7 @@ export default function App() {
         await incrementUserPoints(report.reportedBy.uid, 50); // Reporter gets 50 pts
       }
       await incrementUserPoints(user.uid, 20); // BPO gets 20 pts
-    } else if ((updates.estimationDate || updates.moveToProses) && report.status === ReportStatus.OPEN) {
+    } else if ((updates?.estimationDate || updates?.moveToProses) && report?.status === ReportStatus.OPEN) {
       newStatus = ReportStatus.IN_PROGRESS;
     }
 
@@ -235,6 +241,37 @@ export default function App() {
     } catch (error) {
       console.error("Error updating report:", error);
       alert("Gagal memperbarui laporan");
+    }
+  };
+  
+  const handleDeleteReport = (reportId: string) => {
+    console.log("🚀 App: handleDeleteReport called with ID:", reportId);
+    setDeleteConfirm({ isOpen: true, reportId });
+  };
+
+  const confirmDelete = async () => {
+    const reportId = deleteConfirm.reportId;
+    console.log("🎯 App: confirmDelete triggered for ID:", reportId);
+    if (!reportId) return;
+
+    const report = reports.find((r) => r.id === reportId);
+    if (!report) {
+      console.error("❌ App: Report not found in state:", reportId);
+      setDeleteConfirm({ isOpen: false, reportId: null });
+      return;
+    }
+
+    const collectionName = report.findingType === "Unsafe Action" ? "unsafe_actions" : "unsafe_conditions";
+    console.log("📂 App: Deleting from collection:", collectionName);
+    const docRef = doc(db, collectionName, reportId);
+
+    try {
+      await deleteDoc(docRef);
+      console.log("✅ App: Document successfully deleted from Firestore");
+      setDeleteConfirm({ isOpen: false, reportId: null });
+    } catch (error) {
+      console.error("❌ App: Error deleting report:", error);
+      setDeleteConfirm({ isOpen: false, reportId: null });
     }
   };
 
@@ -314,6 +351,7 @@ export default function App() {
                 notifications={notifications}
                 onAddReport={handleAddReport}
                 onUpdateReport={handleUpdateReport}
+                onDeleteReport={handleDeleteReport}
                 onMarkNotificationsAsRead={handleMarkNotificationsAsRead}
                 onMarkNotificationAsRead={handleMarkNotificationAsRead}
                 onLogout={handleLogout}
@@ -331,6 +369,7 @@ export default function App() {
                 notifications={notifications}
                 onAddReport={handleAddReport}
                 onUpdateReport={handleUpdateReport}
+                onDeleteReport={handleDeleteReport}
                 onMarkNotificationsAsRead={handleMarkNotificationsAsRead}
                 onMarkNotificationAsRead={handleMarkNotificationAsRead}
                 onLogout={handleLogout}
@@ -348,6 +387,7 @@ export default function App() {
                 notifications={notifications}
                 onAddReport={handleAddReport}
                 onUpdateReport={handleUpdateReport}
+                onDeleteReport={handleDeleteReport}
                 onMarkNotificationsAsRead={handleMarkNotificationsAsRead}
                 onMarkNotificationAsRead={handleMarkNotificationAsRead}
                 onLogout={handleLogout}
@@ -365,6 +405,7 @@ export default function App() {
                 notifications={notifications}
                 onAddReport={handleAddReport}
                 onUpdateReport={handleUpdateReport}
+                onDeleteReport={handleDeleteReport}
                 onMarkNotificationsAsRead={handleMarkNotificationsAsRead}
                 onMarkNotificationAsRead={handleMarkNotificationAsRead}
                 onLogout={handleLogout}
@@ -381,6 +422,16 @@ export default function App() {
           />
         </Routes>
       )}
+      <ConfirmModal
+        isOpen={deleteConfirm.isOpen}
+        title="Hapus Laporan"
+        message="Apakah Anda yakin ingin menghapus laporan ini? Tindakan ini tidak dapat dibatalkan."
+        confirmText="Hapus"
+        cancelText="Batal"
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteConfirm({ isOpen: false, reportId: null })}
+        type="danger"
+      />
     </BrowserRouter>
   );
 }

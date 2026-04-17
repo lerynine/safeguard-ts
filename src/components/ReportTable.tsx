@@ -10,7 +10,8 @@ import {
   Edit3,
   ShieldAlert,
   Search,
-  X
+  X,
+  Trash2
 } from 'lucide-react';
 import { ReportStatus, UserRole } from '../constants/enums';
 import { db } from '../firebase';
@@ -45,12 +46,14 @@ export default function ReportTable({
   reports,
   user,
   onUpdate,
+  onDelete,
   onImageClick,
   hideActions = false
 }: {
   reports: any[],
   user: any,
   onUpdate: (id: string, data: any) => void,
+  onDelete?: (id: string) => void,
   onImageClick?: (url: string) => void,
   hideActions?: boolean
 }) {
@@ -68,6 +71,11 @@ export default function ReportTable({
   const [loadingUserSearch, setLoadingUserSearch] = useState(false);
 
   useEffect(() => {
+    // Set initial role from user prop if available
+    if (user?.role) {
+      setCurrentUserRole(user.role);
+    }
+
     const loadUser = async () => {
       const auth = getAuth();
       const authUser = auth.currentUser;
@@ -179,6 +187,21 @@ export default function ReportTable({
                 const StatusIcon = config.icon;
                 const isEditing = selectedReportId === report.id;
                 const isDisposisi = disposisiReportId === report.id;
+                const canDelete = isUserBPO || report.reportedBy?.uid === user?.uid;
+
+                const handleDeleteClick = () => {
+                  console.log("🗑️ (Table) Delete button clicked for report:", report.id);
+                  console.log("👤 Current User UID:", user?.uid);
+                  console.log("📄 Report Creator UID:", report.reportedBy?.uid);
+                  console.log("👮 Is BPO (Table):", isUserBPO);
+                  console.log("✅ Can Delete (Table):", canDelete);
+                  
+                  if (onDelete) {
+                    onDelete(report.id);
+                  } else {
+                    console.error("❌ onDelete function not passed to ReportTable");
+                  }
+                };
 
                 return (
                   <React.Fragment key={report.id}>
@@ -263,6 +286,18 @@ export default function ReportTable({
                                     <ShieldAlert size={14} />
                                     <span>Disposisi</span>
                                   </EditButton>
+                                )}
+
+                                {canDelete && (
+                                  <DeleteButtonTable
+                                    onClick={handleDeleteClick}
+                                    as={motion.button}
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    title="Hapus Laporan"
+                                  >
+                                    <Trash2 size={14} />
+                                  </DeleteButtonTable>
                                 )}
                               </>
                             ) : (
@@ -742,6 +777,24 @@ const CancelBtn = styled.button`
   &:hover {
     background: rgba(255, 255, 255, 0.05);
     color: var(--text-primary);
+  }
+`;
+
+const DeleteButtonTable = styled.button`
+  padding: 8px;
+  border-radius: 12px;
+  background: rgba(239, 68, 68, 0.1);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
   }
 `;
 
