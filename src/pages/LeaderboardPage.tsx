@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trophy, Medal, Star, ArrowLeft, TrendingUp, Award, Crown, User } from 'lucide-react';
+import { Trophy, Medal, Star, ArrowLeft, Crown} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { db } from '../firebase';
 import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
@@ -451,27 +451,4 @@ const ActionBtn = styled.button`
   cursor: pointer;
   transition: all 0.2s;
   &:hover { background: #2563eb; transform: translateY(-2px); }
-`;
-
-const StatsGrid = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-
-  @media (max-width: 480px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-const StatItem = styled.div`
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  border-radius: 1.5rem;
-  padding: 1.5rem;
-  display: flex;
-  align-items: center;
-  gap: 1.25rem;
-  
-  strong { display: block; font-size: 1.25rem; color: #ffffff; }
-  span { font-size: 0.75rem; color: #ffffff; opacity: 0.8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
 `;

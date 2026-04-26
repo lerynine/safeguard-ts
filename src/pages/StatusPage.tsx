@@ -1,14 +1,10 @@
-import React, { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import styled from "styled-components";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus,
   Bell,
   LogOut,
-  FileText,
-  Clock,
-  CheckCircle2,
-  AlertTriangle,
   X,
   ArrowLeft,
   Sparkles,
@@ -19,7 +15,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-import { ReportStatus, UserRole } from "../constants/enums";
+import { ReportStatus } from "../constants/enums";
 import ReportForm from "../components/ReportForm";
 import ReportTable from "../components/ReportTable";
 

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect } from "react";
 import styled from "styled-components";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -13,18 +13,15 @@ import {
   X,
   ShieldAlert,
   Sparkles,
-  Filter,
   ArrowDownWideNarrow,
   ArrowUpWideNarrow,
   BarChart3,
   Trophy
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-
-import { ReportStatus, UserRole } from "../constants/enums";
+import { UserRole, ReportStatus } from "../constants/enums";
 import ReportForm from "./ReportForm";
 import ReportCard from "./ReportCard";
-import ReportTable from "./ReportTable";
 
 const COLOR_MAP = {
   blue: { bg: "rgba(59,130,246,0.1)", text: "#60a5fa" },
@@ -529,31 +526,6 @@ const HeaderRight = styled.div`
   }
 `;
 
-const SOSBtn = styled.button`
-  background: #ef4444;
-  color: white;
-  border: none;
-  padding: 0.6rem 1rem;
-  border-radius: 0.75rem;
-  font-weight: 800;
-  font-size: 0.75rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  cursor: pointer;
-  transition: all 0.2s;
-  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
-  
-  &:hover {
-    background: #dc2626;
-    transform: scale(1.05);
-  }
-
-  @media (max-width: 480px) {
-    padding: 0.5rem 0.75rem;
-    span { display: none; }
-  }
-`;
 
 const Title = styled.h2`
   color: #f8fafc;

@@ -1,9 +1,8 @@
-import React, { useMemo } from "react";
+import { useMemo, useState } from "react";
 import styled from "styled-components";
 import { motion } from "framer-motion";
 import { 
-  ArrowLeft, 
-  BarChart3, 
+  ArrowLeft,
   PieChart as PieChartIcon, 
   TrendingUp, 
   Users, 
@@ -12,7 +11,8 @@ import {
   CheckCircle2,
   Clock,
   AlertCircle,
-  Activity
+  Activity,
+  ChevronDown
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -33,18 +33,29 @@ import {
   Area
 } from "recharts";
 import { ReportStatus } from "../constants/enums";
+import RiskMap from "../components/RiskMap";
 
 const COLORS = ["#3b82f6", "#fbbf24", "#818cf8", "#34d399", "#f43f5e", "#8b5cf6"];
 
 export default function AnalyticsPage({ reports }: { reports: any[] }) {
   const navigate = useNavigate();
+  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+
+  const filteredReports = useMemo(() => {
+    return reports.filter(r => {
+      if (!r.date) return false;
+      const d = new Date(r.date);
+      return d.getMonth() === selectedMonth && d.getFullYear() === selectedYear;
+    });
+  }, [reports, selectedMonth, selectedYear]);
 
   const stats = useMemo(() => {
     // 1. Basic KPIs
-    const total = reports.length;
-    const closed = reports.filter(r => r.status === ReportStatus.CLOSED).length;
-    const inProgress = reports.filter(r => r.status === ReportStatus.IN_PROGRESS).length;
-    const open = reports.filter(r => r.status === ReportStatus.OPEN).length;
+    const total = filteredReports.length;
+    const closed = filteredReports.filter(r => r.status === ReportStatus.CLOSED).length;
+    const inProgress = filteredReports.filter(r => r.status === ReportStatus.IN_PROGRESS).length;
+    const open = filteredReports.filter(r => r.status === ReportStatus.OPEN).length;
     const resolutionRate = total > 0 ? Math.round((closed / total) * 100) : 0;
 
     // 2. Reports by Status
@@ -56,7 +67,7 @@ export default function AnalyticsPage({ reports }: { reports: any[] }) {
 
     // 3. Reports by Division
     const divisionMap: Record<string, number> = {};
-    reports.forEach(r => {
+    filteredReports.forEach(r => {
       const div = r.reportedBy?.division || "Lainnya";
       divisionMap[div] = (divisionMap[div] || 0) + 1;
     });
@@ -64,23 +75,20 @@ export default function AnalyticsPage({ reports }: { reports: any[] }) {
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value);
 
-    // 4. Trend (Last 14 days for more data)
-    const last14Days = [...Array(14)].map((_, i) => {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      return d.toISOString().split("T")[0];
-    }).reverse();
-
-    const trendData = last14Days.map(date => {
+    // 4. Trend (Days of the selected month)
+    const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
+    const trendData = [...Array(daysInMonth)].map((_, i) => {
+      const day = i + 1;
+      const dateStr = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
       return {
-        date: new Date(date).toLocaleDateString("id-ID", { day: 'numeric', month: 'short' }),
-        count: reports.filter(r => r.date === date).length
+        date: day.toString(),
+        fullDate: dateStr,
+        count: filteredReports.filter(r => r.date === dateStr).length
       };
     });
 
     // 6. Day of Week Distribution
     const days = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
-    // Initialize all days to ensure they appear in the chart even with 0 reports
     const dayMap: Record<string, number> = { 
       "Senin": 0, 
       "Selasa": 0, 
@@ -91,7 +99,7 @@ export default function AnalyticsPage({ reports }: { reports: any[] }) {
       "Minggu": 0 
     };
     
-    reports.forEach(r => {
+    filteredReports.forEach(r => {
       if (r.date) {
         const dateObj = new Date(r.date);
         const dayName = days[dateObj.getDay()];
@@ -99,21 +107,30 @@ export default function AnalyticsPage({ reports }: { reports: any[] }) {
       }
     });
 
-    // Order the data to start from Monday to Sunday
     const orderedDays = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"];
     const dayData = orderedDays.map(name => ({ name, value: dayMap[name] }));
 
     // 7. Finding Type Ratio
     const typeData = [
-      { name: "Unsafe Action", value: reports.filter(r => r.findingType === "Unsafe Action").length },
-      { name: "Unsafe Condition", value: reports.filter(r => r.findingType === "Unsafe Condition").length },
+      { name: "Unsafe Action", value: filteredReports.filter(r => r.findingType === "Unsafe Action").length },
+      { name: "Unsafe Condition", value: filteredReports.filter(r => r.findingType === "Unsafe Condition").length },
     ];
 
     return { 
       total, closed, inProgress, open, resolutionRate,
-      statusData, divisionData, typeData, trendData, dayData 
+      statusData, typeData, trendData, dayData 
     };
-  }, [reports]);
+  }, [filteredReports, selectedMonth, selectedYear]);
+
+  const months = [
+    "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+    "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+  ];
+
+  const years = useMemo(() => {
+    const currentYear = new Date().getFullYear();
+    return [currentYear, currentYear - 1, currentYear - 2];
+  }, []);
 
   return (
     <Container>
@@ -123,10 +140,48 @@ export default function AnalyticsPage({ reports }: { reports: any[] }) {
           <Title>Rekap Analitik & Metrik</Title>
         </HeaderLeft>
         <HeaderRight>
-          <Calendar size={16} />
-          <span>{new Date().toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+          <FilterWrapper>
+            <FilterIcon>
+              <Filter size={14} />
+            </FilterIcon>
+            <Select 
+              value={selectedMonth} 
+              onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+            >
+              {months.map((m, i) => (
+                <option key={m} value={i}>{m}</option>
+              ))}
+            </Select>
+            <Select 
+              value={selectedYear} 
+              onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+            >
+              {years.map(y => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </Select>
+            <ChevronDown size={14} style={{ marginLeft: '-25px', pointerEvents: 'none', opacity: 0.5 }} />
+          </FilterWrapper>
         </HeaderRight>
       </Header>
+
+      <RiskMap reports={filteredReports} />
+
+      <SectionTitle>Rekap Temuan</SectionTitle>
+      <TypeGrid style={{ marginBottom: '2rem' }}>
+        {stats.typeData.map((type, i) => (
+          <TypeCard key={i} as={motion.div} whileHover={{ y: -5 }} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
+            <TypeIcon color={type.name === "Unsafe Action" ? "#3b82f6" : "#f43f5e"}>
+              {type.name === "Unsafe Action" ? <Users size={24} /> : <Filter size={24} />}
+            </TypeIcon>
+            <TypeInfo>
+              <h3>{type.name}</h3>
+              <p>{Math.round((type.value / (stats.total || 1)) * 100)}% dari total temuan</p>
+            </TypeInfo>
+            <TypeValue>{type.value}</TypeValue>
+          </TypeCard>
+        ))}
+      </TypeGrid>
 
       {/* KPI Row */}
       <KPIRow>
@@ -160,28 +215,12 @@ export default function AnalyticsPage({ reports }: { reports: any[] }) {
         </KPICard>
       </KPIRow>
 
-      <SectionTitle>Rasio Tipe Temuan</SectionTitle>
-      <TypeGrid style={{ marginBottom: '2rem' }}>
-        {stats.typeData.map((type, i) => (
-          <TypeCard key={i} as={motion.div} whileHover={{ y: -5 }} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
-            <TypeIcon color={type.name === "Unsafe Action" ? "#3b82f6" : "#f43f5e"}>
-              {type.name === "Unsafe Action" ? <Users size={24} /> : <Filter size={24} />}
-            </TypeIcon>
-            <TypeInfo>
-              <h3>{type.name}</h3>
-              <p>{Math.round((type.value / (stats.total || 1)) * 100)}% dari total temuan</p>
-            </TypeInfo>
-            <TypeValue>{type.value}</TypeValue>
-          </TypeCard>
-        ))}
-      </TypeGrid>
-
       <BentoGrid>
         {/* Main Trend Chart - Spans 2 columns */}
         <BentoItem className="span-2" as={motion.div} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
           <CardHeader>
             <TrendingUp size={18} color="#3b82f6" />
-            <h3>Tren Laporan (14 Hari Terakhir)</h3>
+            <h3>Tren Laporan (Bulan {months[selectedMonth]})</h3>
           </CardHeader>
           <ChartContainer>
             <ResponsiveContainer width="100%" height={250}>
@@ -244,7 +283,16 @@ export default function AnalyticsPage({ reports }: { reports: any[] }) {
             <ResponsiveContainer width="100%" height={250}>
               <BarChart data={stats.dayData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                <XAxis dataKey="name" stroke="#ffffff" fontSize={10} tickLine={false} axisLine={false} interval={0} />
+                <XAxis 
+                  dataKey="name" 
+                  stroke="#ffffff" 
+                  fontSize={9} 
+                  tickLine={false} 
+                  axisLine={false} 
+                  interval={0}
+                  angle={-15}
+                  textAnchor="end"
+                />
                 <YAxis stroke="#ffffff" fontSize={10} tickLine={false} axisLine={false} />
                 <Tooltip 
                   cursor={{ fill: 'rgba(0,0,0,0.02)' }}
@@ -306,9 +354,42 @@ const Title = styled.h1`
 const HeaderRight = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 1rem;
   color: #ffffff;
   font-size: 0.875rem;
+`;
+
+const FilterWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+  padding: 0.25rem 0.75rem;
+  gap: 0.5rem;
+`;
+
+const FilterIcon = styled.div`
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+`;
+
+const Select = styled.select`
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 600;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  padding-right: 1.5rem;
+  
+  option {
+    background: #1e293b;
+    color: white;
+  }
 `;
 
 const KPIRow = styled.div`

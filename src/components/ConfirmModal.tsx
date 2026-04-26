@@ -1,6 +1,5 @@
-import React from 'react';
 import styled from 'styled-components';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from  "framer-motion";
 import { AlertTriangle, X } from 'lucide-react';
 
 interface ConfirmModalProps {
@@ -36,12 +35,14 @@ export default function ConfirmModal({
     <AnimatePresence>
       {isOpen && (
         <Overlay
+          as={motion.div}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onCancel}
         >
           <Modal
+            as={motion.div}
             initial={{ scale: 0.9, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.9, opacity: 0, y: 20 }}

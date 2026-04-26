@@ -96,20 +96,28 @@ export default function ReportForm({ onClose, onSubmit }: { onClose: () => void,
   };
 
   const containerVariants = {
-    hidden: { opacity: 0, y: 50, scale: 0.95 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      scale: 1,
-      transition: {
-        type: "spring",
-        damping: 25,
-        stiffness: 300,
-        staggerChildren: 0.1
-      }
+  hidden: {
+    opacity: 0,
+    y: 20,
+    scale: 0.95,
+  },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: {
+      type: "spring" as const, // 🔥 FIX DI SINI
+      damping: 20,
+      stiffness: 100,
+      staggerChildren: 0.1,
     },
-    exit: { opacity: 0, y: 20, scale: 0.95, transition: { duration: 0.2 } }
-  };
+  },
+  exit: {
+    opacity: 0,
+    y: 20,
+    scale: 0.95,
+  },
+};
 
   const itemVariants = {
     hidden: { opacity: 0, x: -20 },

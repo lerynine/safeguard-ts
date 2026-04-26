@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import {
@@ -18,9 +18,7 @@ import {
   orderBy,
   writeBatch,
   increment,
-  setDoc,
   deleteDoc,
-  getDoc,
   getDocs
 } from "firebase/firestore";
 import { auth, db } from "./firebase";
